@@ -1,148 +1,102 @@
-\# Marco 0.2 — Autenticação e Persistência de Usuários
-
-
+# Marco 0.2 — Autenticação e Persistência de Usuários
 
 Data: 2026-08-22
 
-
-
-\## 1. Objetivo
-
-
+## 1. Objetivo
 
 Implementar o primeiro fluxo de negócio real do MetricaMEI: cadastro e autenticação de usuários.
 
-
-
 O marco introduz:
 
+- arquitetura Controller → Service → Repository;
 
+- persistência com SQLAlchemy;
 
-\- arquitetura Controller → Service → Repository;
+- SQLite no ambiente de desenvolvimento;
 
-\- persistência com SQLAlchemy;
+- migrations com Alembic;
 
-\- SQLite no ambiente de desenvolvimento;
+- hashing de senhas com Argon2;
 
-\- migrations com Alembic;
+- autenticação por JWT;
 
-\- hashing de senhas com Argon2;
+- testes unitários e de integração;
 
-\- autenticação por JWT;
-
-\- testes unitários e de integração;
-
-\- endpoint protegido para identificação do usuário autenticado.
-
-
+- endpoint protegido para identificação do usuário autenticado.
 
 Ficam fora deste marco:
 
+- conteúdos;
 
+- métricas;
 
-\- conteúdos;
+- dashboard;
 
-\- métricas;
+- frontend React;
 
-\- dashboard;
+- refresh token;
 
-\- frontend React;
-
-\- refresh token;
-
-\- PostgreSQL em produção.
-
-
+- PostgreSQL em produção.
 
 ---
 
-
-
-\## 2. Entidade Usuario
-
-
+## 2. Entidade Usuario
 
 A entidade de domínio terá:
 
+- `id`
 
+- `nome`
 
-\- `id`
+- `email`
 
-\- `nome`
+- `senha_hash`
 
-\- `email`
+- `criado_em`
 
-\- `senha\_hash`
+A API nunca deverá retornar `senha` ou `senha_hash`.
 
-\- `criado\_em`
+### Regras
 
+#### Nome
 
+- obrigatório;
 
-A API nunca deverá retornar `senha` ou `senha\_hash`.
+- remover espaços externos;
 
+- mínimo de 2 caracteres;
 
+- máximo de 100 caracteres.
 
-\### Regras
+#### E-mail
 
+- obrigatório;
 
+- formato válido;
 
-\#### Nome
+- remover espaços externos;
 
+- armazenar em letras minúsculas;
 
+- único no sistema.
 
-\- obrigatório;
+#### Senha
 
-\- remover espaços externos;
+- obrigatória;
 
-\- mínimo de 2 caracteres;
+- mínimo de 8 caracteres;
 
-\- máximo de 100 caracteres.
+- máximo de 128 caracteres;
 
+- nunca armazenada em texto puro;
 
-
-\#### E-mail
-
-
-
-\- obrigatório;
-
-\- formato válido;
-
-\- remover espaços externos;
-
-\- armazenar em letras minúsculas;
-
-\- único no sistema.
-
-
-
-\#### Senha
-
-
-
-\- obrigatória;
-
-\- mínimo de 8 caracteres;
-
-\- máximo de 128 caracteres;
-
-\- nunca armazenada em texto puro;
-
-\- hash gerado com Argon2.
-
-
+- hash gerado com Argon2.
 
 ---
 
-
-
-\## 3. Arquitetura
-
-
+## 3. Arquitetura
 
 O fluxo principal será:
-
-
 
 HTTP
 
@@ -154,93 +108,61 @@ HTTP
 
 → Persistência
 
-
-
-\### Controller
-
-
+### Controller
 
 Responsável por:
 
+- receber requisições HTTP;
 
+- validar schemas de entrada;
 
-\- receber requisições HTTP;
+- chamar o Service;
 
-\- validar schemas de entrada;
-
-\- chamar o Service;
-
-\- transformar exceções de negócio em respostas HTTP.
-
-
+- transformar exceções de negócio em respostas HTTP.
 
 Não deverá conter regras de negócio.
 
-
-
-\### Service
-
-
+### Service
 
 Responsável por:
 
+- regras de cadastro;
 
+- normalização de dados;
 
-\- regras de cadastro;
+- verificação de e-mail duplicado;
 
-\- normalização de dados;
+- hashing de senha;
 
-\- verificação de e-mail duplicado;
+- autenticação;
 
-\- hashing de senha;
+- validação de credenciais;
 
-\- autenticação;
-
-\- validação de credenciais;
-
-\- geração de JWT.
-
-
+- geração de JWT.
 
 O Service não conhecerá detalhes de SQLAlchemy ou SQLite.
 
-
-
-\### Repository
-
-
+### Repository
 
 Será a abstração responsável pelo acesso aos usuários.
 
-
-
 Haverá duas implementações:
 
+1. `SQLAlchemyUserRepository`
 
+   - usada pela aplicação real;
 
-1\. `SQLAlchemyUserRepository`
+   - persiste em SQLite durante o desenvolvimento.
 
-&nbsp;  - usada pela aplicação real;
+2. `InMemoryUserRepository`
 
-&nbsp;  - persiste em SQLite durante o desenvolvimento.
+   - usada em testes unitários;
 
-
-
-2\. `InMemoryUserRepository`
-
-&nbsp;  - usada em testes unitários;
-
-&nbsp;  - não depende de banco de dados.
-
-
+   - não depende de banco de dados.
 
 ---
 
-
-
-\## 4. Estrutura prevista
-
-
+## 4. Estrutura prevista
 
 ```text
 
@@ -252,19 +174,19 @@ backend/
 
 │   ├── controllers/
 
-│   │   └── auth\_controller.py
+│   │   └── auth_controller.py
 
 │   ├── services/
 
-│   │   └── auth\_service.py
+│   │   └── auth_service.py
 
 │   ├── repositories/
 
-│   │   ├── user\_repository.py
+│   │   ├── user_repository.py
 
-│   │   ├── sqlalchemy\_user\_repository.py
+│   │   ├── sqlalchemy_user_repository.py
 
-│   │   └── in\_memory\_user\_repository.py
+│   │   └── in_memory_user_repository.py
 
 │   ├── domain/
 
@@ -301,4 +223,3 @@ backend/
 ├── alembic.ini
 
 └── data/
-
