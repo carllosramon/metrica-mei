@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.dependencies import get_auth_service
 from app.schemas.auth import (
@@ -7,17 +8,21 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
-
 from app.services.auth_service import (
     AuthService,
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
+    UnauthenticatedError,
 )
 
 
 router = APIRouter(
     prefix="/auth",
     tags=["auth"],
+)
+
+security = HTTPBearer(
+    auto_error=False,
 )
 
 
@@ -43,6 +48,7 @@ def register(
             detail="E-mail já cadastrado.",
         ) from exc
 
+
 @router.post(
     "/login",
     response_model=TokenResponse,
@@ -62,10 +68,42 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha inválidos.",
             headers={
-                "WWW-Authenticate": "Bearer"
+                "WWW-Authenticate": "Bearer",
             },
         ) from exc
 
     return TokenResponse(
         access_token=token,
     )
+
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+)
+def me(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    service: AuthService = Depends(get_auth_service),
+):
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
+        )
+
+    try:
+        return service.get_current_user(
+            credentials.credentials
+        )
+
+    except UnauthenticatedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
+        ) from exc

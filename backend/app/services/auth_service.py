@@ -14,6 +14,10 @@ class InvalidCredentialsError(Exception):
     pass
 
 
+class UnauthenticatedError(Exception):
+    pass
+
+
 class AuthService:
     def __init__(
         self,
@@ -73,3 +77,23 @@ class AuthService:
         return self._token_service.create_access_token(
             user.id
         )
+
+    def get_current_user(
+        self,
+        token: str,
+    ) -> User:
+        user_id = self._token_service.decode_subject(
+            token
+        )
+
+        if user_id is None:
+            raise UnauthenticatedError
+
+        user = self._repository.get_by_id(
+            user_id
+        )
+
+        if user is None:
+            raise UnauthenticatedError
+
+        return user
