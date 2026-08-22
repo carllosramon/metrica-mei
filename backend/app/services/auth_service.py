@@ -2,10 +2,15 @@ from datetime import datetime, timezone
 
 from app.domain.user import User
 from app.repositories.user_repository import UserRepository
+from app.security.jwt import TokenService
 from app.security.password import PasswordService
 
 
 class EmailAlreadyRegisteredError(Exception):
+    pass
+
+
+class InvalidCredentialsError(Exception):
     pass
 
 
@@ -14,9 +19,11 @@ class AuthService:
         self,
         repository: UserRepository,
         password_service: PasswordService,
+        token_service: TokenService,
     ):
         self._repository = repository
         self._password_service = password_service
+        self._token_service = token_service
 
     def register(
         self,
@@ -39,3 +46,30 @@ class AuthService:
         )
 
         return self._repository.create(user)
+
+    def login(
+        self,
+        email: str,
+        senha: str,
+    ) -> str:
+        normalized_email = email.strip().lower()
+
+        user = self._repository.get_by_email(
+            normalized_email
+        )
+
+        if user is None:
+            raise InvalidCredentialsError
+
+        if not self._password_service.verify(
+            senha,
+            user.senha_hash,
+        ):
+            raise InvalidCredentialsError
+
+        if user.id is None:
+            raise InvalidCredentialsError
+
+        return self._token_service.create_access_token(
+            user.id
+        )

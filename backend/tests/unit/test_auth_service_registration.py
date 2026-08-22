@@ -3,12 +3,25 @@ import pytest
 from app.repositories.in_memory_user_repository import InMemoryUserRepository
 from app.security.password import PasswordService
 from app.services.auth_service import AuthService, EmailAlreadyRegisteredError
+from app.security.jwt import TokenService
 
 
 def make_service():
     repository = InMemoryUserRepository()
     password_service = PasswordService()
-    return AuthService(repository, password_service), repository, password_service
+    return (
+    AuthService(
+        repository,
+        password_service,
+        TokenService(
+            "test-secret-key-with-at-least-32-bytes",
+            "HS256",
+            30,
+        ),
+    ),
+    repository,
+    password_service,
+)
 
 
 def test_register_normalizes_user_and_hashes_password():

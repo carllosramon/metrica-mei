@@ -24,3 +24,15 @@ class UserResponse(BaseModel):
     criado_em: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    senha: str = Field(
+        min_length=1,
+        max_length=128,
+    )
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
