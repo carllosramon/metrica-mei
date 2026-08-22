@@ -10,6 +10,10 @@ class EmailAlreadyRegisteredError(Exception):
     pass
 
 
+class InvalidRegistrationError(Exception):
+    pass
+
+
 class InvalidCredentialsError(Exception):
     pass
 
@@ -37,6 +41,12 @@ class AuthService:
     ) -> User:
         normalized_name = nome.strip()
         normalized_email = email.strip().lower()
+
+        if not 2 <= len(normalized_name) <= 100:
+            raise InvalidRegistrationError
+
+        if not 8 <= len(senha) <= 128:
+            raise InvalidRegistrationError
 
         if self._repository.get_by_email(normalized_email) is not None:
             raise EmailAlreadyRegisteredError
