@@ -128,13 +128,14 @@ python -m alembic upgrade head
 
 ```
 
-A migration inicial cria a tabela:
+As migrations atuais criam as tabelas:
 
 ```text
-
 usuarios
-
+conteudos
 ```
+
+A tabela `conteudos` referencia `usuarios.id` por `usuario_id`.
 
 O banco local é armazenado em:
 
@@ -248,6 +249,49 @@ Authorization: Bearer <token>
 
 ```
 
+### POST /conteudos
+
+Cria um conteúdo para o usuário autenticado.
+
+Requer:
+
+```text
+Authorization: Bearer <token>
+```
+
+Exemplo:
+
+```json
+{
+  "titulo": "Resultados do mês",
+  "plataforma": "Instagram",
+  "tipo": "Carrossel",
+  "data_publicacao": "2026-08-20"
+}
+```
+
+### GET /conteudos
+
+Lista somente os conteúdos do usuário autenticado, ordenados por data de publicação mais recente e, em caso de empate, pelo maior `id`.
+
+### GET /conteudos/{id}
+
+Retorna um conteúdo do usuário autenticado.
+
+Conteúdo inexistente ou pertencente a outro usuário retorna `404`.
+
+### PATCH /conteudos/{id}
+
+Atualiza parcialmente `titulo`, `plataforma`, `tipo` e/ou `data_publicacao`.
+
+Payload vazio é inválido.
+
+### DELETE /conteudos/{id}
+
+Exclui definitivamente um conteúdo do usuário autenticado.
+
+Em caso de sucesso retorna `204 No Content`.
+
 ## Testes automatizados
 
 Para executar toda a suíte:
@@ -284,24 +328,20 @@ Segredos são carregados através de variáveis de ambiente e não devem ser arm
 
 ## Estado atual
 
-O Marco 0.2 implementa:
+O Marco 0.3 implementa:
 
 ```text
-
-cadastro
-
-   ↓
-
-login
-
-   ↓
-
-JWT
-
-   ↓
-
-endpoint autenticado /auth/me
-
+cadastro/login
+      ↓
+     JWT
+      ↓
+usuário autenticado
+      ↓
+CRUD de conteúdos
+      ↓
+ownership por usuário
 ```
 
-Conteúdos, métricas, dashboard e frontend fazem parte dos próximos marcos.
+O backend possui autenticação e gerenciamento de conteúdos com arquitetura Controller–Service–Repository, testes unitários com Repository em memória e testes de integração com SQLite isolado.
+
+Métricas, cálculo de engajamento, dashboard e frontend fazem parte dos próximos marcos.
