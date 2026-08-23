@@ -1,4 +1,4 @@
-﻿from datetime import date, datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -21,3 +21,10 @@ class ContentResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
     )
+
+
+class ContentUpdateRequest(BaseModel):
+    titulo: str | None = None
+    plataforma: str | None = None
+    tipo: str | None = None
+    data_publicacao: date | None = None
