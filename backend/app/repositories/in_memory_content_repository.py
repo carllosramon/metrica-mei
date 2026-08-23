@@ -8,10 +8,7 @@ class InMemoryContentRepository:
         self._contents: dict[int, Content] = {}
         self._next_id = 1
 
-    def create(
-        self,
-        content: Content,
-    ) -> Content:
+    def create(self, content: Content) -> Content:
         stored_content = replace(
             content,
             id=self._next_id,
@@ -21,6 +18,25 @@ class InMemoryContentRepository:
         self._next_id += 1
 
         return stored_content
+
+    def list_by_user(
+        self,
+        user_id: int,
+    ) -> list[Content]:
+        contents = [
+            content
+            for content in self._contents.values()
+            if content.usuario_id == user_id
+        ]
+
+        return sorted(
+            contents,
+            key=lambda content: (
+                content.data_publicacao,
+                content.id or 0,
+            ),
+            reverse=True,
+        )
 
     def get_by_id_and_user(
         self,
@@ -36,3 +52,11 @@ class InMemoryContentRepository:
             return None
 
         return content
+
+    def update(self, content: Content) -> Content:
+        self._contents[content.id] = content
+        return content
+
+    def delete(self, content: Content) -> None:
+        if content.id is not None:
+            self._contents.pop(content.id, None)

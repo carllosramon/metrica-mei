@@ -1,4 +1,4 @@
-﻿from datetime import date, timedelta
+﻿from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -146,3 +146,16 @@ def test_create_accepts_past_publication_date():
     )
 
     assert content.data_publicacao == past_date
+
+
+def test_create_rejects_datetime_as_publication_date():
+    service, _ = make_service()
+
+    with pytest.raises(InvalidContentError):
+        service.create(
+            user_id=1,
+            titulo="Conteúdo válido",
+            plataforma="Instagram",
+            tipo="Reels",
+            data_publicacao=datetime.now(),
+        )
