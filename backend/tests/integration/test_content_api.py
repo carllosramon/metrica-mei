@@ -558,3 +558,64 @@ def test_delete_content_returns_404_for_another_users_content(
     )
 
     assert owner_response.status_code == 200
+
+
+def test_create_content_returns_422_for_future_publication_date(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    try:
+        response = client.post(
+            "/conteudos",
+            headers=headers,
+            json={
+                "titulo": "Conteúdo futuro",
+                "plataforma": "Instagram",
+                "tipo": "Reels",
+                "data_publicacao": "2999-01-01",
+            },
+        )
+    except InvalidContentError:
+        pytest.fail(
+            "InvalidContentError escapou do Controller no POST."
+        )
+
+    assert response.status_code == 422
+
+
+def test_list_contents_returns_401_without_token(
+    client,
+):
+    response = client.get(
+        "/conteudos",
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {
+        "detail": "Não autenticado."
+    }
+    assert (
+        response.headers["www-authenticate"]
+        == "Bearer"
+    )
+
+
+def test_list_contents_returns_401_for_invalid_token(
+    client,
+):
+    response = client.get(
+        "/conteudos",
+        headers={
+            "Authorization": "Bearer token-invalido",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {
+        "detail": "Não autenticado."
+    }
+    assert (
+        response.headers["www-authenticate"]
+        == "Bearer"
+    )

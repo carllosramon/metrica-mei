@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies import (
     get_content_service,
@@ -33,13 +33,20 @@ def create_content(
         get_content_service
     ),
 ):
-    return service.create(
-        user_id=current_user.id,
-        titulo=payload.titulo,
-        plataforma=payload.plataforma,
-        tipo=payload.tipo,
-        data_publicacao=payload.data_publicacao,
-    )
+    try:
+        return service.create(
+            user_id=current_user.id,
+            titulo=payload.titulo,
+            plataforma=payload.plataforma,
+            tipo=payload.tipo,
+            data_publicacao=payload.data_publicacao,
+        )
+
+    except InvalidContentError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Dados do conteúdo inválidos.",
+        ) from exc
 
 
 @router.get(
@@ -147,4 +154,3 @@ def delete_content(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conteúdo não encontrado.",
         ) from exc
-
