@@ -10,10 +10,12 @@ from app.database.connection import (
     create_session_factory,
 )
 from app.domain.user import User
+from app.repositories.sqlalchemy_content_repository import SQLAlchemyContentRepository
 from app.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
 from app.services.auth_service import AuthService, UnauthenticatedError
+from app.services.content_service import ContentService
 
 
 security = HTTPBearer(
@@ -92,3 +94,17 @@ def get_current_user(
                 "WWW-Authenticate": "Bearer",
             },
         ) from exc
+
+
+
+def get_content_repository(
+    session: Session = Depends(get_db_session),
+):
+    return SQLAlchemyContentRepository(session)
+
+
+def get_content_service(
+    repository=Depends(get_content_repository),
+):
+    return ContentService(repository)
+
