@@ -1,6 +1,7 @@
-from functools import lru_cache
+﻿from functools import lru_cache
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -8,10 +9,16 @@ from app.database.connection import (
     create_engine_from_url,
     create_session_factory,
 )
+from app.domain.user import User
 from app.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
-from app.services.auth_service import AuthService
+from app.services.auth_service import AuthService, UnauthenticatedError
+
+
+security = HTTPBearer(
+    auto_error=False,
+)
 
 
 @lru_cache
@@ -57,3 +64,31 @@ def get_auth_service(
             settings.jwt_expires_minutes,
         ),
     )
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    service: AuthService = Depends(get_auth_service),
+) -> User:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
+        )
+
+    try:
+        return service.get_current_user(
+            credentials.credentials
+        )
+
+    except UnauthenticatedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado.",
+            headers={
+                "WWW-Authenticate": "Bearer",
+            },
+        ) from exc

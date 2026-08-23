@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.dependencies import get_auth_service
+from app.dependencies import get_auth_service, get_current_user
+from app.domain.user import User
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
@@ -12,17 +12,12 @@ from app.services.auth_service import (
     AuthService,
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
-    UnauthenticatedError,
 )
 
 
 router = APIRouter(
     prefix="/auth",
     tags=["auth"],
-)
-
-security = HTTPBearer(
-    auto_error=False,
 )
 
 
@@ -82,28 +77,6 @@ def login(
     response_model=UserResponse,
 )
 def me(
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
-    service: AuthService = Depends(get_auth_service),
+    current_user: User = Depends(get_current_user),
 ):
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Não autenticado.",
-            headers={
-                "WWW-Authenticate": "Bearer",
-            },
-        )
-
-    try:
-        return service.get_current_user(
-            credentials.credentials
-        )
-
-    except UnauthenticatedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Não autenticado.",
-            headers={
-                "WWW-Authenticate": "Bearer",
-            },
-        ) from exc
+    return current_user
