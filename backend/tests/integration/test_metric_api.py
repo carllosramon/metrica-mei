@@ -245,3 +245,393 @@ def test_metric_routes_hide_foreign_content(
     assert response.json() == {
         "detail": "Conteúdo não encontrado."
     }
+
+def create_metric(
+    client,
+    headers,
+    content_id,
+    *,
+    reference_date=None,
+):
+    response = client.post(
+        f"/conteudos/{content_id}/metricas",
+        headers=headers,
+        json=metric_payload(
+            reference_date=reference_date
+        ),
+    )
+
+    assert response.status_code == 201
+
+    return response.json()
+
+
+def test_patch_metric_updates_one_field(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    content = create_content(
+        client,
+        headers,
+    )
+
+    metric = create_metric(
+        client,
+        headers,
+        content["id"],
+    )
+
+    response = client.patch(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=headers,
+        json={
+            "alcance": 999,
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["alcance"] == 999
+    assert (
+        body["visualizacoes"]
+        == metric["visualizacoes"]
+    )
+
+def test_delete_metric_returns_204(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    content = create_content(
+        client,
+        headers,
+    )
+
+    metric = create_metric(
+        client,
+        headers,
+        content["id"],
+    )
+
+    response = client.delete(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 204
+    assert response.content == b""
+
+def test_patch_metric_accepts_zero(
+    client,
+):
+    headers = authenticated_headers(client)
+    content = create_content(
+        client,
+        headers,
+    )
+    metric = create_metric(
+        client,
+        headers,
+        content["id"],
+    )
+
+    response = client.patch(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=headers,
+        json={"alcance": 0},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["alcance"] == 0
+
+
+def test_patch_metric_rejects_empty_payload(
+    client,
+):
+    headers = authenticated_headers(client)
+    content = create_content(
+        client,
+        headers,
+    )
+    metric = create_metric(
+        client,
+        headers,
+        content["id"],
+    )
+
+    response = client.patch(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=headers,
+        json={},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados da métrica inválidos."
+    }
+
+
+def test_patch_metric_rejects_explicit_null(
+    client,
+):
+    headers = authenticated_headers(client)
+    content = create_content(
+        client,
+        headers,
+    )
+    metric = create_metric(
+        client,
+        headers,
+        content["id"],
+    )
+
+    response = client.patch(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=headers,
+        json={"alcance": None},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados da métrica inválidos."
+    }
+
+
+def test_create_metric_rejects_negative_value(
+    client,
+):
+    headers = authenticated_headers(client)
+    content = create_content(
+        client,
+        headers,
+    )
+
+    payload = metric_payload()
+    payload["alcance"] = -1
+
+    response = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=payload,
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados da métrica inválidos."
+    }
+
+
+def test_create_metric_rejects_reference_date_before_publication(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    publication = (
+        date.today() - timedelta(days=1)
+    )
+
+    content = create_content(
+        client,
+        headers,
+        publication_date=publication.isoformat(),
+    )
+
+    response = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=metric_payload(
+            reference_date=(
+                publication - timedelta(days=1)
+            ).isoformat()
+        ),
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados da métrica inválidos."
+    }
+
+
+def test_create_metric_rejects_future_reference_date(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    content = create_content(
+        client,
+        headers,
+    )
+
+    response = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=metric_payload(
+            reference_date=(
+                date.today() + timedelta(days=1)
+            ).isoformat()
+        ),
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados da métrica inválidos."
+    }
+
+
+def test_create_metric_rejects_duplicate_date(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    content = create_content(
+        client,
+        headers,
+    )
+
+    create_metric(
+        client,
+        headers,
+        content["id"],
+    )
+
+    response = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=metric_payload(),
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": (
+            "Já existe uma métrica para este "
+            "conteúdo nesta data."
+        )
+    }
+
+
+def test_patch_metric_rejects_date_collision(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    publication = (
+        date.today() - timedelta(days=3)
+    )
+
+    content = create_content(
+        client,
+        headers,
+        publication_date=publication.isoformat(),
+    )
+
+    first_date = (
+        date.today() - timedelta(days=1)
+    )
+
+    first = create_metric(
+        client,
+        headers,
+        content["id"],
+        reference_date=first_date.isoformat(),
+    )
+
+    second = create_metric(
+        client,
+        headers,
+        content["id"],
+        reference_date=date.today().isoformat(),
+    )
+
+    response = client.patch(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{second['id']}"
+        ),
+        headers=headers,
+        json={
+            "data_referencia": (
+                first["data_referencia"]
+            )
+        },
+    )
+
+    assert response.status_code == 409
+
+
+def test_metric_id_from_other_content_is_hidden(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    first_content = create_content(
+        client,
+        headers,
+        title="A",
+    )
+
+    second_content = create_content(
+        client,
+        headers,
+        title="B",
+    )
+
+    metric = create_metric(
+        client,
+        headers,
+        second_content["id"],
+    )
+
+    response = client.get(
+        (
+            f"/conteudos/{first_content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Métrica não encontrada."
+    }
+
+
+def test_delete_missing_metric_returns_404(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    content = create_content(
+        client,
+        headers,
+    )
+
+    response = client.delete(
+        (
+            f"/conteudos/{content['id']}"
+            "/metricas/999"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Métrica não encontrada."
+    }

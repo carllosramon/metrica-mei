@@ -148,3 +148,71 @@ def get_metric(
 
     except MetricNotFoundError as exc:
         _raise_metric_not_found(exc)
+
+@router.patch(
+    (
+        "/conteudos/{content_id}/metricas/"
+        "{metric_id}"
+    ),
+    response_model=MetricResponse,
+)
+def update_metric(
+    content_id: int,
+    metric_id: int,
+    payload: MetricUpdateRequest,
+    current_user=Depends(get_current_user),
+    service: MetricService = Depends(
+        get_metric_service
+    ),
+):
+    changes = payload.model_dump(
+        exclude_unset=True,
+    )
+
+    try:
+        return service.update(
+            user_id=current_user.id,
+            content_id=content_id,
+            metric_id=metric_id,
+            **changes,
+        )
+
+    except MetricContentNotFoundError as exc:
+        _raise_content_not_found(exc)
+
+    except MetricNotFoundError as exc:
+        _raise_metric_not_found(exc)
+
+    except DuplicateMetricError as exc:
+        _raise_duplicate_metric(exc)
+
+    except InvalidMetricError as exc:
+        _raise_invalid_metric(exc)
+
+@router.delete(
+    (
+        "/conteudos/{content_id}/metricas/"
+        "{metric_id}"
+    ),
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_metric(
+    content_id: int,
+    metric_id: int,
+    current_user=Depends(get_current_user),
+    service: MetricService = Depends(
+        get_metric_service
+    ),
+):
+    try:
+        service.delete(
+            user_id=current_user.id,
+            content_id=content_id,
+            metric_id=metric_id,
+        )
+
+    except MetricContentNotFoundError as exc:
+        _raise_content_not_found(exc)
+
+    except MetricNotFoundError as exc:
+        _raise_metric_not_found(exc)
