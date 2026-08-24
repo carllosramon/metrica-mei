@@ -1,4 +1,4 @@
-﻿from functools import lru_cache
+from functools import lru_cache
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,10 +12,14 @@ from app.database.connection import (
 from app.domain.user import User
 from app.repositories.sqlalchemy_content_repository import SQLAlchemyContentRepository
 from app.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
+from app.repositories.sqlalchemy_metric_repository import (
+    SQLAlchemyMetricRepository,
+)
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
 from app.services.auth_service import AuthService, UnauthenticatedError
 from app.services.content_service import ContentService
+from app.services.metric_service import MetricService
 
 
 security = HTTPBearer(
@@ -108,3 +112,21 @@ def get_content_service(
 ):
     return ContentService(repository)
 
+def get_metric_repository(
+    session: Session = Depends(get_db_session),
+):
+    return SQLAlchemyMetricRepository(session)
+
+
+def get_metric_service(
+    content_repository=Depends(
+        get_content_repository
+    ),
+    metric_repository=Depends(
+        get_metric_repository
+    ),
+):
+    return MetricService(
+        content_repository,
+        metric_repository,
+    )

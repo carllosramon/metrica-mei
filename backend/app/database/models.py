@@ -1,6 +1,6 @@
-﻿from datetime import date, datetime
+from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, String
+from sqlalchemy import Date, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.connection import Base
@@ -66,6 +66,60 @@ class ContentModel(Base):
     )
 
     data_publicacao: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+    )
+
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+class MetricModel(Base):
+    __tablename__ = "metricas"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "conteudo_id",
+            "data_referencia",
+            name="uq_metricas_conteudo_data_referencia",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    conteudo_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "conteudos.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+
+    visualizacoes: Mapped[int] = mapped_column(
+        nullable=False,
+    )
+
+    curtidas: Mapped[int] = mapped_column(
+        nullable=False,
+    )
+
+    comentarios: Mapped[int] = mapped_column(
+        nullable=False,
+    )
+
+    compartilhamentos: Mapped[int] = mapped_column(
+        nullable=False,
+    )
+
+    alcance: Mapped[int] = mapped_column(
+        nullable=False,
+    )
+
+    data_referencia: Mapped[date] = mapped_column(
         Date,
         nullable=False,
     )
