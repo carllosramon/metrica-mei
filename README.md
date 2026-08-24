@@ -134,7 +134,7 @@ O sistema aplica ownership por usuário: um usuário não pode consultar, altera
 
 ### Métricas
 
-O módulo de métricas já possui implementação das camadas de domínio, negócio e persistência.
+O módulo de métricas possui implementação das camadas de domínio, negócio, persistência e HTTP.
 
 Cada métrica é um snapshot cumulativo de um conteúdo em uma determinada data de referência.
 
@@ -173,7 +173,19 @@ conteudo_id + data_referencia
 
 Isso impede que um mesmo conteúdo possua dois snapshots para a mesma data.
 
-A integração desse módulo com a camada HTTP é a próxima etapa de desenvolvimento.
+A integração do módulo de métricas com a camada HTTP está concluída.
+
+Endpoints disponíveis:
+
+```text
+POST   /conteudos/{content_id}/metricas
+GET    /conteudos/{content_id}/metricas
+GET    /conteudos/{content_id}/metricas/{metric_id}
+PATCH  /conteudos/{content_id}/metricas/{metric_id}
+DELETE /conteudos/{content_id}/metricas/{metric_id}
+```
+
+Todas as rotas exigem autenticação JWT e respeitam o ownership através do conteúdo.
 
 ## Banco de dados
 
@@ -356,7 +368,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-156 testes passando
+175 testes passando
 ```
 
 ## Segurança
@@ -367,10 +379,10 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O backend já possui:
+O Marco 0.4 implementa:
 
 ```text
-Autenticação
+Cadastro e login
       ↓
      JWT
       ↓
@@ -378,55 +390,33 @@ Usuário autenticado
       ↓
 CRUD de conteúdos
       ↓
-Ownership
+Histórico de métricas
       ↓
-Domínio de métricas
-      ↓
-MetricService
-      ↓
-Repositories de métricas
-      ↓
-Persistência SQLAlchemy
-      ↓
-Migration 0003
+Ownership por conteúdo
 ```
 
-A branch de desenvolvimento atual do módulo é:
+O backend possui autenticação, gerenciamento de conteúdos e snapshots históricos de métricas utilizando arquitetura Controller–Service–Repository.
+
+O RF03 está implementado com criação, listagem, consulta, atualização e exclusão de métricas.
+
+A migration mais recente é:
 
 ```text
-feature/metricas
+0003_create_metricas
 ```
 
-Último marco concluído dentro dessa branch:
-
-```text
-SQLAlchemyMetricRepository
-```
-
-com suporte a:
-
-```text
-create
-list_by_content
-get_by_id_and_content
-get_by_content_and_reference_date
-update
-delete
-```
+Cálculo de engajamento, dashboard e frontend fazem parte dos próximos marcos.
 
 ## Próximas etapas
 
 As próximas etapas planejadas são:
 
-1. integrar o módulo de métricas à API;
-2. criar schemas de requisição e resposta para métricas;
-3. configurar as dependências do `MetricService`;
-4. criar os endpoints `/conteudos/{content_id}/metricas`;
-5. concluir os testes HTTP do RF03;
-6. implementar o cálculo de engajamento;
-7. desenvolver o painel de métricas;
-8. desenvolver o frontend.
-
+1. implementar o cálculo de engajamento;
+2. desenvolver as funcionalidades do painel de métricas;
+3. implementar os próximos requisitos funcionais;
+4. desenvolver o frontend em React;
+5. integrar frontend e backend;
+6. ampliar a cobertura de testes conforme a evolução do sistema.
 ## Fluxo de desenvolvimento
 
 O projeto utiliza Git com desenvolvimento por branches. A branch `main` representa a linha principal do projeto e funcionalidades são desenvolvidas em branches específicas e posteriormente integradas por Pull Request.
