@@ -225,3 +225,8 @@ backend/data/*.db
 .claude/
 skills-lock.json
 CLAUDE.md
+
+# Node / frontend
+node_modules/
+*.local
+npm-debug.log*
