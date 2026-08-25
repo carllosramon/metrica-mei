@@ -215,6 +215,44 @@ Quando o alcance é zero, o campo retorna `null`. Alcance zero não significa de
 
 A fórmula vive isolada em `app/services/engagement.py`, como função pura, para que o painel de análise possa reaproveitá-la sem depender do serviço de métricas.
 
+### Painel de análise
+
+Um único endpoint devolve os números consolidados da conta do usuário
+autenticado:
+
+```text
+GET /painel
+```
+
+A resposta traz:
+
+```text
+total_conteudos
+conteudos_com_metricas
+total_visualizacoes
+total_curtidas
+total_comentarios
+total_compartilhamentos
+total_alcance
+engajamento_geral
+melhores_conteudos
+```
+
+Como cada métrica é um snapshot cumulativo, o painel usa **apenas a medição
+mais recente de cada conteúdo**. Somar todo o histórico multiplicaria os
+números, porque cada snapshot já contém o total acumulado até a sua data.
+
+O `engajamento_geral` é calculado sobre os totais, e não como média dos
+engajamentos individuais — na média, um conteúdo de alcance 10 pesaria o mesmo
+que um de alcance 50.000. Quando o alcance total é zero, o campo vem `null`.
+
+O `melhores_conteudos` traz até cinco conteúdos ordenados por engajamento
+decrescente. Conteúdos sem métrica registrada e conteúdos com alcance zero
+ficam fora do ranking, porque não têm índice comparável.
+
+Uma conta sem conteúdo nenhum recebe `200` com o painel zerado. Ausência de
+dado é a primeira tela de todo usuário novo, não uma falha.
+
 ## Banco de dados
 
 As migrations atuais criam:
@@ -398,7 +436,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-208 testes passando
+222 testes passando
 ```
 
 ## Segurança
@@ -409,7 +447,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.5 implementa:
+O Marco 0.6 implementa:
 
 ```text
 Cadastro e login
@@ -424,14 +462,18 @@ Histórico de métricas
       ↓
 Índice de engajamento
       ↓
+Painel consolidado
+      ↓
 Ownership por conteúdo
 ```
 
-O backend possui autenticação, gerenciamento de conteúdos, snapshots históricos de métricas e cálculo do índice de engajamento utilizando arquitetura Controller–Service–Repository.
+O backend possui autenticação, gerenciamento de conteúdos, snapshots históricos de métricas, cálculo do índice de engajamento e painel consolidado de análise utilizando arquitetura Controller–Service–Repository.
 
 O RF03 está implementado com criação, listagem, consulta, atualização e exclusão de métricas.
 
 O RF04 está implementado com o índice de engajamento exposto em todas as respostas de métricas, calculado na camada de serviço e não persistido.
+
+O RF05 está implementado com o painel consolidado do usuário em `GET /painel`, agregando o snapshot mais recente de cada conteúdo sem criar tabelas nem colunas.
 
 A migration mais recente é:
 
@@ -439,17 +481,16 @@ A migration mais recente é:
 0004_add_url_publicacao_conteudos
 ```
 
-Painel de análise e frontend fazem parte dos próximos marcos.
+O frontend em React faz parte do próximo marco.
 
 ## Próximas etapas
 
 As próximas etapas planejadas são:
 
-1. desenvolver as funcionalidades do painel de métricas;
-2. implementar os próximos requisitos funcionais;
-3. desenvolver o frontend em React;
-4. integrar frontend e backend;
-5. ampliar a cobertura de testes conforme a evolução do sistema.
+1. desenvolver o frontend em React;
+2. integrar frontend e backend;
+3. implementar os próximos requisitos funcionais;
+4. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
 
