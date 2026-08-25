@@ -77,6 +77,7 @@ class InMemoryMetricRepository:
                 return metric
 
         return None
+
     def update(
         self,
         metric: Metric,
@@ -96,25 +97,7 @@ class InMemoryMetricRepository:
             self._metrics[metric.id] = metric
 
         return metric
-    def update(
-        self,
-        metric: Metric,
-    ) -> Metric:
-        existing = self.get_by_content_and_reference_date(
-            metric.conteudo_id,
-            metric.data_referencia,
-        )
 
-        if (
-            existing is not None
-            and existing.id != metric.id
-        ):
-            raise MetricPersistenceConflictError
-
-        if metric.id is not None:
-            self._metrics[metric.id] = metric
-
-        return metric
     def delete(
         self,
         metric: Metric,
