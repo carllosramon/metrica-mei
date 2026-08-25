@@ -1,0 +1,97 @@
+.pagina {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.titulo {
+  font-size: 24px;
+}
+
+.saudacao {
+  margin: 4px 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+}
+
+.sair {
+  padding: 9px 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.secao {
+  font-size: 18px;
+  margin-bottom: 14px;
+}
+
+.moldura {
+  overflow-x: auto;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background-color: var(--cor-superficie);
+  box-shadow: var(--sombra);
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabela th,
+.tabela td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--cor-borda);
+  white-space: nowrap;
+}
+
+.tabela th {
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.numerico {
+  text-align: right;
+}
+
+.vazio {
+  padding: 24px;
+  border: 1px dashed var(--cor-borda);
+  border-radius: var(--raio);
+  color: var(--cor-texto-suave);
+  text-align: center;
+}
+
+.erro {
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background-color: var(--cor-erro-suave);
+  color: var(--cor-erro);
+}

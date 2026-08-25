@@ -1,0 +1,35 @@
+.cartao {
+  padding: 18px 20px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background-color: var(--cor-superficie);
+  box-shadow: var(--sombra);
+}
+
+.rotulo {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+}
+
+.valor {
+  margin: 6px 0 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.destacado .valor {
+  color: var(--cor-destaque);
+}
+
+.destacado {
+  background-color: var(--cor-destaque-suave);
+  border-color: var(--cor-destaque);
+}
+
+.observacao {
+  margin: 6px 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+}
