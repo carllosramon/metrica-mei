@@ -619,3 +619,199 @@ def test_list_contents_returns_401_for_invalid_token(
         response.headers["www-authenticate"]
         == "Bearer"
     )
+
+
+def test_create_content_stores_and_returns_publication_url(
+    client,
+):
+    response = client.post(
+        "/conteudos",
+        headers=authenticated_headers(client),
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+            "url_publicacao": "  https://instagram.com/p/abc123  ",
+        },
+    )
+
+    assert response.status_code == 201
+    assert (
+        response.json()["url_publicacao"]
+        == "https://instagram.com/p/abc123"
+    )
+
+
+def test_create_content_without_url_returns_null(
+    client,
+):
+    response = client.post(
+        "/conteudos",
+        headers=authenticated_headers(client),
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["url_publicacao"] is None
+
+
+def test_create_content_returns_422_for_invalid_url(
+    client,
+):
+    response = client.post(
+        "/conteudos",
+        headers=authenticated_headers(client),
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+            "url_publicacao": "instagram.com/p/abc123",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_get_content_returns_stored_publication_url(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    create_response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+            "url_publicacao": "https://instagram.com/p/abc123",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    created = create_response.json()
+
+    response = client.get(
+        f"/conteudos/{created['id']}",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["url_publicacao"]
+        == "https://instagram.com/p/abc123"
+    )
+
+
+def test_update_content_replaces_publication_url(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    create_response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+            "url_publicacao": "https://instagram.com/p/antigo",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    created = create_response.json()
+
+    response = client.patch(
+        f"/conteudos/{created['id']}",
+        headers=headers,
+        json={
+            "url_publicacao": "https://instagram.com/p/novo",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["url_publicacao"]
+        == "https://instagram.com/p/novo"
+    )
+
+
+def test_update_content_clears_publication_url_with_null(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    create_response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+            "url_publicacao": "https://instagram.com/p/abc123",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    created = create_response.json()
+
+    response = client.patch(
+        f"/conteudos/{created['id']}",
+        headers=headers,
+        json={
+            "url_publicacao": None,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["url_publicacao"] is None
+
+
+def test_update_content_keeps_url_when_field_is_absent(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    create_response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Meu conteúdo",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+            "url_publicacao": "https://instagram.com/p/abc123",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    created = create_response.json()
+
+    response = client.patch(
+        f"/conteudos/{created['id']}",
+        headers=headers,
+        json={
+            "titulo": "Título novo",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["url_publicacao"]
+        == "https://instagram.com/p/abc123"
+    )

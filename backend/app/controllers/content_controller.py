@@ -40,6 +40,7 @@ def create_content(
             plataforma=payload.plataforma,
             tipo=payload.tipo,
             data_publicacao=payload.data_publicacao,
+            url_publicacao=payload.url_publicacao,
         )
 
     except InvalidContentError as exc:

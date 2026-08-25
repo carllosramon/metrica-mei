@@ -8,6 +8,7 @@ class ContentCreateRequest(BaseModel):
     plataforma: str
     tipo: str
     data_publicacao: date
+    url_publicacao: str | None = None
 
 
 class ContentResponse(BaseModel):
@@ -17,6 +18,7 @@ class ContentResponse(BaseModel):
     tipo: str
     data_publicacao: date
     criado_em: datetime
+    url_publicacao: str | None
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -28,3 +30,4 @@ class ContentUpdateRequest(BaseModel):
     plataforma: str | None = None
     tipo: str | None = None
     data_publicacao: date | None = None
+    url_publicacao: str | None = None
