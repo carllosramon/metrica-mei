@@ -9,7 +9,7 @@ from app.controllers.metric_controller import (
 
 app = FastAPI(
     title="MetricaMEI API",
-    version="0.2.0",
+    version="0.5.0",
 )
 
 app.include_router(auth_router)
