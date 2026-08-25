@@ -75,7 +75,7 @@ A arquitetura foi projetada para permitir a utilização de PostgreSQL sem alter
 
 ### Frontend
 
-O frontend está previsto para ser desenvolvido em React em uma etapa posterior do projeto.
+React com Vite e TypeScript, roteamento com React Router e estilo em CSS Modules. Testes com Vitest e Testing Library.
 
 ## Estrutura do backend
 
@@ -255,6 +255,57 @@ dado é a primeira tela de todo usuário novo, não uma falha.
 
 A especificação completa do requisito, com a justificativa de cada decisão e
 os critérios de aceite, está em `docs/requisitos/RF05-painel-de-analise.md`.
+
+## Frontend
+
+Aplicação em React com Vite e TypeScript, no diretório `frontend/`.
+
+```text
+frontend/src/
+├── api/            contrato com o backend
+├── autenticacao/   sessão, contexto e rota protegida
+├── componentes/    peças reutilizáveis de interface
+├── estilos/        variáveis e reset globais
+├── paginas/        uma tela por arquivo
+└── formatacao.ts   apresentação de números e datas
+```
+
+Telas disponíveis:
+
+```text
+/cadastrar   criação de conta
+/entrar      login
+/painel      painel de análise (protegido)
+```
+
+A sessão guarda o token em `localStorage` e o valida contra `GET /auth/me` ao
+abrir a aplicação, porque o JWT expira em trinta minutos e o valor guardado
+pode estar vencido.
+
+O estilo usa CSS Modules, sem dependência adicional. A nomeação do código do
+frontend é em português, diferente do backend, que segue a convenção em inglês
+já consolidada.
+
+Para rodar:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+O endereço da API vem de `VITE_API_URL`, com padrão `http://localhost:8000`.
+Veja `frontend/.env.example`.
+
+Testes do frontend:
+
+```bash
+npm test
+```
+
+```text
+18 testes passando
+```
 
 ## Banco de dados
 
@@ -439,7 +490,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-222 testes passando
+226 testes passando
 ```
 
 ## Segurança
@@ -450,7 +501,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.6 implementa:
+O Marco 0.7 implementa:
 
 ```text
 Cadastro e login
@@ -467,6 +518,8 @@ Histórico de métricas
       ↓
 Painel consolidado
       ↓
+Painel em React
+      ↓
 Ownership por conteúdo
 ```
 
@@ -476,7 +529,7 @@ O RF03 está implementado com criação, listagem, consulta, atualização e exc
 
 O RF04 está implementado com o índice de engajamento exposto em todas as respostas de métricas, calculado na camada de serviço e não persistido.
 
-O RF05 foi decomposto em duas partes, porque o enunciado pede *apresentar* indicadores e apresentação é responsabilidade da interface. A disponibilização dos dados está implementada em `GET /painel`, agregando o snapshot mais recente de cada conteúdo sem criar tabelas nem colunas. A apresentação depende do frontend e será entregue no próximo marco.
+O RF05 está concluído nas suas duas partes: a disponibilização dos dados em `GET /painel`, agregando o snapshot mais recente de cada conteúdo sem criar tabelas nem colunas, e a apresentação na tela do painel em React.
 
 A migration mais recente é:
 
@@ -484,16 +537,15 @@ A migration mais recente é:
 0004_add_url_publicacao_conteudos
 ```
 
-O frontend em React faz parte do próximo marco.
+O frontend cobre cadastro, login e painel. As telas de conteúdo e de métrica fazem parte do próximo marco, e até lá esses cadastros são feitos pela API.
 
 ## Próximas etapas
 
 As próximas etapas planejadas são:
 
-1. desenvolver o frontend em React;
-2. integrar frontend e backend;
-3. implementar os próximos requisitos funcionais;
-4. ampliar a cobertura de testes conforme a evolução do sistema.
+1. criar as telas de conteúdo e de métrica no frontend;
+2. implementar os próximos requisitos funcionais;
+3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
 
