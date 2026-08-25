@@ -19,6 +19,7 @@ class SQLAlchemyContentRepository:
             tipo=model.tipo,
             data_publicacao=model.data_publicacao,
             criado_em=model.criado_em,
+            url_publicacao=model.url_publicacao,
         )
 
     def create(self, content: Content) -> Content:
@@ -29,6 +30,7 @@ class SQLAlchemyContentRepository:
             tipo=content.tipo,
             data_publicacao=content.data_publicacao,
             criado_em=content.criado_em,
+            url_publicacao=content.url_publicacao,
         )
 
         self._session.add(model)
@@ -94,6 +96,7 @@ class SQLAlchemyContentRepository:
         model.plataforma = content.plataforma
         model.tipo = content.tipo
         model.data_publicacao = content.data_publicacao
+        model.url_publicacao = content.url_publicacao
 
         self._session.commit()
         self._session.refresh(model)
