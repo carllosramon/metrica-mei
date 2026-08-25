@@ -120,6 +120,18 @@ GET  /auth/me
 
 O usuário autenticado pode cadastrar conteúdos, listar seus conteúdos, consultar um conteúdo, atualizar parcialmente um conteúdo e excluir um conteúdo.
 
+Os dados de um conteúdo são:
+
+```text
+titulo
+plataforma
+tipo
+data_publicacao
+url_publicacao
+```
+
+A URL de publicação é opcional, precisa começar com `http://` ou `https://` e pode ser removida enviando `null` no `PATCH`.
+
 Endpoints disponíveis:
 
 ```text
@@ -187,6 +199,22 @@ DELETE /conteudos/{content_id}/metricas/{metric_id}
 
 Todas as rotas exigem autenticação JWT e respeitam o ownership através do conteúdo.
 
+### Índice de engajamento
+
+Toda resposta de métrica traz o campo `engajamento`, calculado por:
+
+```text
+(curtidas + comentarios + compartilhamentos)
+--------------------------------------------- × 100
+                  alcance
+```
+
+O valor é arredondado para duas casas decimais e não é persistido: ele é calculado na camada de serviço a cada leitura, evitando uma segunda fonte de verdade que ficaria desatualizada a cada `PATCH`.
+
+Quando o alcance é zero, o campo retorna `null`. Alcance zero não significa desempenho nulo, e sim que o índice não é calculável — o que é diferente de um engajamento realmente zero.
+
+A fórmula vive isolada em `app/services/engagement.py`, como função pura, para que o painel de análise possa reaproveitá-la sem depender do serviço de métricas.
+
 ## Banco de dados
 
 As migrations atuais criam:
@@ -204,6 +232,8 @@ metricas
 Armazena os usuários do sistema.
 
 ### conteudos
+
+A coluna `url_publicacao` é opcional e armazena o endereço público do conteúdo na plataforma.
 
 Cada conteúdo pertence a um usuário através de:
 
@@ -238,7 +268,7 @@ para garantir a aplicação das Foreign Keys.
 A migration atual mais recente é:
 
 ```text
-0003_create_metricas
+0004_add_url_publicacao_conteudos
 ```
 
 ## Configuração do ambiente
@@ -368,7 +398,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-175 testes passando
+208 testes passando
 ```
 
 ## Segurança
@@ -379,7 +409,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.4 implementa:
+O Marco 0.5 implementa:
 
 ```text
 Cadastro e login
@@ -392,31 +422,35 @@ CRUD de conteúdos
       ↓
 Histórico de métricas
       ↓
+Índice de engajamento
+      ↓
 Ownership por conteúdo
 ```
 
-O backend possui autenticação, gerenciamento de conteúdos e snapshots históricos de métricas utilizando arquitetura Controller–Service–Repository.
+O backend possui autenticação, gerenciamento de conteúdos, snapshots históricos de métricas e cálculo do índice de engajamento utilizando arquitetura Controller–Service–Repository.
 
 O RF03 está implementado com criação, listagem, consulta, atualização e exclusão de métricas.
+
+O RF04 está implementado com o índice de engajamento exposto em todas as respostas de métricas, calculado na camada de serviço e não persistido.
 
 A migration mais recente é:
 
 ```text
-0003_create_metricas
+0004_add_url_publicacao_conteudos
 ```
 
-Cálculo de engajamento, dashboard e frontend fazem parte dos próximos marcos.
+Painel de análise e frontend fazem parte dos próximos marcos.
 
 ## Próximas etapas
 
 As próximas etapas planejadas são:
 
-1. implementar o cálculo de engajamento;
-2. desenvolver as funcionalidades do painel de métricas;
-3. implementar os próximos requisitos funcionais;
-4. desenvolver o frontend em React;
-5. integrar frontend e backend;
-6. ampliar a cobertura de testes conforme a evolução do sistema.
+1. desenvolver as funcionalidades do painel de métricas;
+2. implementar os próximos requisitos funcionais;
+3. desenvolver o frontend em React;
+4. integrar frontend e backend;
+5. ampliar a cobertura de testes conforme a evolução do sistema.
+
 ## Fluxo de desenvolvimento
 
 O projeto utiliza Git com desenvolvimento por branches. A branch `main` representa a linha principal do projeto e funcionalidades são desenvolvidas em branches específicas e posteriormente integradas por Pull Request.
