@@ -21,6 +21,7 @@ def test_content_model_maps_expected_table():
         "tipo",
         "data_publicacao",
         "criado_em",
+        "url_publicacao",
     }
 
     assert table.c.titulo.type.length == 200

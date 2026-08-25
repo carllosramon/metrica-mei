@@ -50,6 +50,7 @@ def test_alembic_upgrade_head_creates_content_table(
             "tipo",
             "data_publicacao",
             "criado_em",
+            "url_publicacao",
         }
 
         foreign_keys = inspector.get_foreign_keys(

@@ -75,6 +75,12 @@ class ContentModel(Base):
         nullable=False,
     )
 
+    url_publicacao: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
+
 class MetricModel(Base):
     __tablename__ = "metricas"
 
