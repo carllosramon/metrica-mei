@@ -25,6 +25,7 @@ class MetricResponse(BaseModel):
     alcance: int
     data_referencia: date
     criado_em: datetime
+    engajamento: float | None
 
     model_config = ConfigDict(
         from_attributes=True,
