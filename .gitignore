@@ -219,3 +219,9 @@ __marimo__/
 
 # Local MetricaMEI database
 backend/data/*.db
+
+# Agent skills (instalacao local, nao versionada)
+.agents/
+.claude/
+skills-lock.json
+CLAUDE.md
