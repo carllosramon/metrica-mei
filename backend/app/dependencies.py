@@ -19,6 +19,7 @@ from app.security.jwt import TokenService
 from app.security.password import PasswordService
 from app.services.auth_service import AuthService, UnauthenticatedError
 from app.services.content_service import ContentService
+from app.services.dashboard_service import DashboardService
 from app.services.metric_service import MetricService
 
 
@@ -127,6 +128,20 @@ def get_metric_service(
     ),
 ):
     return MetricService(
+        content_repository,
+        metric_repository,
+    )
+
+
+def get_dashboard_service(
+    content_repository=Depends(
+        get_content_repository
+    ),
+    metric_repository=Depends(
+        get_metric_repository
+    ),
+):
+    return DashboardService(
         content_repository,
         metric_repository,
     )

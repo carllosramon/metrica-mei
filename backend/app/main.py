@@ -2,6 +2,9 @@ from fastapi import FastAPI
 
 from app.controllers.auth_controller import router as auth_router
 from app.controllers.content_controller import router as content_router
+from app.controllers.dashboard_controller import (
+    router as dashboard_router,
+)
 from app.controllers.metric_controller import (
     router as metric_router,
 )
@@ -15,6 +18,7 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(content_router)
 app.include_router(metric_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/health")
