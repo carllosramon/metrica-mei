@@ -11,3 +11,4 @@ class Content:
     tipo: str
     data_publicacao: date
     criado_em: datetime
+    url_publicacao: str | None = None
