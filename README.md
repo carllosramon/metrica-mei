@@ -253,6 +253,9 @@ ficam fora do ranking, porque não têm índice comparável.
 Uma conta sem conteúdo nenhum recebe `200` com o painel zerado. Ausência de
 dado é a primeira tela de todo usuário novo, não uma falha.
 
+A especificação completa do requisito, com a justificativa de cada decisão e
+os critérios de aceite, está em `docs/requisitos/RF05-painel-de-analise.md`.
+
 ## Banco de dados
 
 As migrations atuais criam:
@@ -473,7 +476,7 @@ O RF03 está implementado com criação, listagem, consulta, atualização e exc
 
 O RF04 está implementado com o índice de engajamento exposto em todas as respostas de métricas, calculado na camada de serviço e não persistido.
 
-O RF05 está implementado com o painel consolidado do usuário em `GET /painel`, agregando o snapshot mais recente de cada conteúdo sem criar tabelas nem colunas.
+O RF05 foi decomposto em duas partes, porque o enunciado pede *apresentar* indicadores e apresentação é responsabilidade da interface. A disponibilização dos dados está implementada em `GET /painel`, agregando o snapshot mais recente de cada conteúdo sem criar tabelas nem colunas. A apresentação depende do frontend e será entregue no próximo marco.
 
 A migration mais recente é:
 
