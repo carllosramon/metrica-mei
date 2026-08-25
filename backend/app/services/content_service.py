@@ -39,6 +39,30 @@ class ContentService:
         return normalized
 
     @staticmethod
+    def _normalize_url(
+        value: object,
+    ) -> str | None:
+        # None é aceito de propósito: é assim que o PATCH remove a URL
+        # de um conteúdo que já a tinha.
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            raise InvalidContentError
+
+        normalized = value.strip()
+
+        # A validação fica no serviço, e não em HttpUrl do Pydantic, para
+        # manter a regra de negócio fora da camada de contrato.
+        if not normalized.startswith(("http://", "https://")):
+            raise InvalidContentError
+
+        if len(normalized) > 500:
+            raise InvalidContentError
+
+        return normalized
+
+    @staticmethod
     def _validate_publication_date(
         value: object,
     ) -> date:
@@ -57,6 +81,7 @@ class ContentService:
         plataforma: str,
         tipo: str,
         data_publicacao: date,
+        url_publicacao: str | None = None,
     ) -> Content:
         content = Content(
             id=None,
@@ -77,6 +102,9 @@ class ContentService:
                 data_publicacao
             ),
             criado_em=datetime.now(timezone.utc),
+            url_publicacao=self._normalize_url(
+                url_publicacao
+            ),
         )
 
         return self._repository.create(content)
@@ -110,12 +138,14 @@ class ContentService:
         plataforma: object = _UNSET,
         tipo: object = _UNSET,
         data_publicacao: object = _UNSET,
+        url_publicacao: object = _UNSET,
     ) -> Content:
         if (
             titulo is _UNSET
             and plataforma is _UNSET
             and tipo is _UNSET
             and data_publicacao is _UNSET
+            and url_publicacao is _UNSET
         ):
             raise InvalidContentError
 
@@ -145,6 +175,11 @@ class ContentService:
                 self._validate_publication_date(data_publicacao)
                 if data_publicacao is not _UNSET
                 else content.data_publicacao
+            ),
+            url_publicacao=(
+                self._normalize_url(url_publicacao)
+                if url_publicacao is not _UNSET
+                else content.url_publicacao
             ),
         )
 
