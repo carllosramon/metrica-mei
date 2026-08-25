@@ -1,12 +1,13 @@
 from dataclasses import replace
 from datetime import date, datetime, timezone
 
-from app.domain.metric import Metric
+from app.domain.metric import Metric, MetricWithEngagement
 from app.repositories.content_repository import ContentRepository
 from app.repositories.metric_repository import (
     MetricPersistenceConflictError,
     MetricRepository,
 )
+from app.services.engagement import calculate_engagement
 
 
 _METRIC_VALUE_FIELDS = (
@@ -129,6 +130,28 @@ class MetricService:
                 "conteúdo nesta data."
             )
 
+    @staticmethod
+    def _with_engagement(
+        metric: Metric,
+    ) -> MetricWithEngagement:
+        return MetricWithEngagement(
+            id=metric.id,
+            conteudo_id=metric.conteudo_id,
+            visualizacoes=metric.visualizacoes,
+            curtidas=metric.curtidas,
+            comentarios=metric.comentarios,
+            compartilhamentos=metric.compartilhamentos,
+            alcance=metric.alcance,
+            data_referencia=metric.data_referencia,
+            criado_em=metric.criado_em,
+            engajamento=calculate_engagement(
+                curtidas=metric.curtidas,
+                comentarios=metric.comentarios,
+                compartilhamentos=metric.compartilhamentos,
+                alcance=metric.alcance,
+            ),
+        )
+
     def create(
         self,
         user_id: int,
@@ -139,7 +162,7 @@ class MetricService:
         compartilhamentos: int,
         alcance: int,
         data_referencia: date,
-    ) -> Metric:
+    ) -> MetricWithEngagement:
         content = self._get_owned_content(
             content_id,
             user_id,
@@ -180,7 +203,7 @@ class MetricService:
         )
 
         try:
-            return self._metric_repository.create(
+            created = self._metric_repository.create(
                 metric
             )
         except MetricPersistenceConflictError as exc:
@@ -189,21 +212,28 @@ class MetricService:
                 "conteúdo nesta data."
             ) from exc
 
+        return self._with_engagement(created)
+
     def list(
         self,
         user_id: int,
         content_id: int,
-    ) -> list[Metric]:
+    ) -> list[MetricWithEngagement]:
         self._get_owned_content(
             content_id,
             user_id,
         )
 
-        return self._metric_repository.list_by_content(
+        metrics = self._metric_repository.list_by_content(
             content_id
         )
 
-    def get(
+        return [
+            self._with_engagement(metric)
+            for metric in metrics
+        ]
+
+    def _get_metric_entity(
         self,
         user_id: int,
         content_id: int,
@@ -226,14 +256,28 @@ class MetricService:
 
         return metric
 
+    def get(
+        self,
+        user_id: int,
+        content_id: int,
+        metric_id: int,
+    ) -> MetricWithEngagement:
+        metric = self._get_metric_entity(
+            user_id=user_id,
+            content_id=content_id,
+            metric_id=metric_id,
+        )
+
+        return self._with_engagement(metric)
+
     def update(
         self,
         user_id: int,
         content_id: int,
         metric_id: int,
         **changes,
-    ) -> Metric:
-        metric = self.get(
+    ) -> MetricWithEngagement:
+        metric = self._get_metric_entity(
             user_id=user_id,
             content_id=content_id,
             metric_id=metric_id,
@@ -289,7 +333,7 @@ class MetricService:
         )
 
         try:
-            return self._metric_repository.update(
+            persisted = self._metric_repository.update(
                 updated
             )
         except MetricPersistenceConflictError as exc:
@@ -298,13 +342,15 @@ class MetricService:
                 "conteúdo nesta data."
             ) from exc
 
+        return self._with_engagement(persisted)
+
     def delete(
         self,
         user_id: int,
         content_id: int,
         metric_id: int,
     ) -> None:
-        metric = self.get(
+        metric = self._get_metric_entity(
             user_id=user_id,
             content_id=content_id,
             metric_id=metric_id,
