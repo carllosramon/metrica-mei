@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { ErroDaApi, chamarApi } from './cliente'
+import { ErroDaApi, chamarApi, registrarPerdaDeSessao } from './cliente'
 
 function responderCom(status: number, corpo: unknown) {
   return {
@@ -96,5 +96,57 @@ describe('chamarApi', () => {
     await expect(chamarApi('/painel')).rejects.toThrow(
       'Não foi possível falar com o servidor.',
     )
+  })
+})
+
+describe('perda de sessão', () => {
+  afterEach(() => {
+    registrarPerdaDeSessao(null)
+  })
+
+  it('avisa quando uma rota autenticada devolve 401', async () => {
+    const aoPerder = vi.fn()
+    registrarPerdaDeSessao(aoPerder)
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(responderCom(401, { detail: 'Não autenticado.' })),
+    )
+
+    await expect(chamarApi('/painel')).rejects.toThrow()
+
+    expect(aoPerder).toHaveBeenCalledTimes(1)
+  })
+
+  it('não derruba a sessão quando o 401 vem do login', async () => {
+    const aoPerder = vi.fn()
+    registrarPerdaDeSessao(aoPerder)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        responderCom(401, { detail: 'E-mail ou senha inválidos.' }),
+      ),
+    )
+
+    await expect(chamarApi('/auth/login')).rejects.toThrow()
+
+    expect(aoPerder).not.toHaveBeenCalled()
+  })
+
+  it('não confunde outros erros com sessão perdida', async () => {
+    const aoPerder = vi.fn()
+    registrarPerdaDeSessao(aoPerder)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(responderCom(404, { detail: 'Sumiu.' })),
+    )
+
+    await expect(chamarApi('/conteudos/9')).rejects.toThrow()
+
+    expect(aoPerder).not.toHaveBeenCalled()
   })
 })

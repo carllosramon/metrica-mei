@@ -6,6 +6,7 @@ import {
   cadastrar,
   entrar,
 } from '../api/autenticacao'
+import { registrarPerdaDeSessao } from '../api/cliente'
 import type { Usuario } from '../api/tipos'
 import { ContextoAutenticacao } from './contexto'
 
@@ -21,6 +22,28 @@ export function ProvedorAutenticacao({ children }: Props) {
   )
   const [usuario, definirUsuario] = useState<Usuario | null>(null)
   const [verificando, definirVerificando] = useState(true)
+  const [sessaoExpirada, definirSessaoExpirada] = useState(false)
+
+  const encerrarSessao = useCallback(() => {
+    localStorage.removeItem(CHAVE_DO_TOKEN)
+    definirToken(null)
+    definirUsuario(null)
+    definirVerificando(false)
+  }, [])
+
+  useEffect(() => {
+    // O cliente HTTP avisa quando qualquer requisição volta 401, porque o
+    // token pode vencer com a tela já aberta e não há outro momento em que
+    // a aplicação descubra isso.
+    registrarPerdaDeSessao(() => {
+      definirSessaoExpirada(true)
+      encerrarSessao()
+    })
+
+    return () => {
+      registrarPerdaDeSessao(null)
+    }
+  }, [encerrarSessao])
 
   useEffect(() => {
     if (token === null) {
@@ -44,23 +67,19 @@ export function ProvedorAutenticacao({ children }: Props) {
         definirVerificando(false)
       })
       .catch(() => {
-        if (cancelado) {
-          return
+        if (!cancelado) {
+          encerrarSessao()
         }
-
-        localStorage.removeItem(CHAVE_DO_TOKEN)
-        definirToken(null)
-        definirUsuario(null)
-        definirVerificando(false)
       })
 
     return () => {
       cancelado = true
     }
-  }, [token])
+  }, [token, encerrarSessao])
 
   const guardarToken = useCallback((novoToken: string) => {
     localStorage.setItem(CHAVE_DO_TOKEN, novoToken)
+    definirSessaoExpirada(false)
     definirVerificando(true)
     definirToken(novoToken)
   }, [])
@@ -86,22 +105,31 @@ export function ProvedorAutenticacao({ children }: Props) {
   )
 
   const sair = useCallback(() => {
-    localStorage.removeItem(CHAVE_DO_TOKEN)
-    definirToken(null)
-    definirUsuario(null)
-    definirVerificando(false)
-  }, [])
+    // Saída deliberada não é sessão vencida: a tela de login não deve
+    // acusar expiração para quem clicou em "Sair".
+    definirSessaoExpirada(false)
+    encerrarSessao()
+  }, [encerrarSessao])
 
   const valor = useMemo(
     () => ({
       token,
       usuario,
       verificando,
+      sessaoExpirada,
       criarConta,
       entrarNaConta,
       sair,
     }),
-    [token, usuario, verificando, criarConta, entrarNaConta, sair],
+    [
+      token,
+      usuario,
+      verificando,
+      sessaoExpirada,
+      criarConta,
+      entrarNaConta,
+      sair,
+    ],
   )
 
   return (

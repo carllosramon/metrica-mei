@@ -7,7 +7,7 @@ import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
 import estilos from './Formulario.module.css'
 
 export function Entrar() {
-  const { entrarNaConta } = usarAutenticacao()
+  const { entrarNaConta, sessaoExpirada } = usarAutenticacao()
   const navegar = useNavigate()
 
   const [email, definirEmail] = useState('')
@@ -40,6 +40,12 @@ export function Entrar() {
         <p className={estilos.subtitulo}>
           Acompanhe o desempenho dos seus conteúdos.
         </p>
+
+        {sessaoExpirada && erro === null && (
+          <p className={estilos.aviso} role="status">
+            Sua sessão expirou. Entre novamente para continuar.
+          </p>
+        )}
 
         {erro !== null && (
           <p className={estilos.erro} role="alert">

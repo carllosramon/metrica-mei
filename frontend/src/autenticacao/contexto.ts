@@ -9,6 +9,9 @@ export type ValorDaAutenticacao = {
   // decidir se o usuário está autenticado: sem isso a aplicação piscaria a
   // tela de login a cada recarga de página.
   verificando: boolean
+  // Diferencia sessão vencida de quem nunca entrou, para que a tela de login
+  // explique por que o usuário foi devolvido para lá.
+  sessaoExpirada: boolean
   criarConta: (
     nome: string,
     email: string,

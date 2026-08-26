@@ -32,6 +32,7 @@ const autenticacao: ValorDaAutenticacao = {
     criado_em: '2026-08-01T00:00:00',
   },
   verificando: false,
+  sessaoExpirada: false,
   criarConta: vi.fn(),
   entrarNaConta: vi.fn(),
   sair: vi.fn(),

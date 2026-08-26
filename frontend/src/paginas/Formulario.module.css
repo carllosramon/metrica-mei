@@ -61,6 +61,15 @@
   font-size: 14px;
 }
 
+.aviso {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: var(--cor-destaque-suave);
+  color: var(--cor-destaque);
+  font-size: 14px;
+}
+
 .botao {
   width: 100%;
   padding: 11px 16px;

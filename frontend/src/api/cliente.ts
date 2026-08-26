@@ -3,6 +3,19 @@ const URL_BASE =
 
 const SEM_RESPOSTA_HTTP = 0
 
+// Nestes caminhos o 401 significa credencial errada, e não sessão perdida.
+// Derrubar a sessão aqui apagaria o token de quem só errou a senha na tela
+// de login estando autenticado em outra aba.
+const CAMINHOS_SEM_SESSAO = ['/auth/login', '/auth/register']
+
+let aoPerderSessao: (() => void) | null = null
+
+export function registrarPerdaDeSessao(
+  callback: (() => void) | null,
+): void {
+  aoPerderSessao = callback
+}
+
 export class ErroDaApi extends Error {
   readonly status: number
 
@@ -26,9 +39,9 @@ function extrairMensagem(conteudo: unknown, status: number): string {
     return detalhe
   }
 
-  // O 422 do FastAPI devolve uma lista de erros de validação, um por campo,
-  // em vez do texto único das demais falhas. Sem este tratamento a tela
-  // exibiria "[object Object]" para o usuário.
+  // O 422 do FastAPI devolve uma lista de erros, um por campo, em vez do
+  // texto único das demais falhas. Sem este tratamento a tela exibiria
+  // "[object Object]" para o usuário.
   if (Array.isArray(detalhe)) {
     const mensagens: string[] = []
 
@@ -46,6 +59,14 @@ function extrairMensagem(conteudo: unknown, status: number): string {
   }
 
   return `Erro inesperado do servidor (${status}).`
+}
+
+function perdeuSessao(caminho: string, status: number): boolean {
+  if (status !== 401) {
+    return false
+  }
+
+  return !CAMINHOS_SEM_SESSAO.includes(caminho)
 }
 
 export async function chamarApi<T>(
@@ -89,6 +110,13 @@ export async function chamarApi<T>(
   const conteudo = await resposta.json().catch(() => null)
 
   if (!resposta.ok) {
+    // O token expira em trinta minutos e pode vencer com a tela aberta. Sem
+    // avisar quem controla a sessão, o usuário ficaria vendo "Não
+    // autenticado." como se fosse falha de carregamento.
+    if (perdeuSessao(caminho, resposta.status)) {
+      aoPerderSessao?.()
+    }
+
     throw new ErroDaApi(
       resposta.status,
       extrairMensagem(conteudo, resposta.status),
