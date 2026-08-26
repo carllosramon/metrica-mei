@@ -1,5 +1,12 @@
 # Marco 0.6 — Dashboard Design
 
+> **Revisão (Marco 0.9):** este documento registra as decisões tomadas no
+> Marco 0.6, quando o documento de projeto ainda não estava disponível. Duas
+> delas foram revistas depois: o painel ganhou o desempenho por plataforma, e
+> o ranking passou a ordenar por alcance em vez de engajamento, conforme a
+> seção 7 da especificação. A referência atual é
+> `docs/requisitos/RF05-painel-de-analise.md`.
+
 ## 1. Objetivo
 
 O Marco 0.6 implementa o RF05 do MetricaMEI: o painel de análise consolidado do usuário autenticado. Um único endpoint devolve os números gerais da conta, calculados a partir dos conteúdos e dos snapshots de métricas já registrados nos marcos anteriores.

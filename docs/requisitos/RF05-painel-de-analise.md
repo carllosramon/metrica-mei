@@ -1,69 +1,52 @@
 # RF05 — Painel de análise
 
 **Projeto:** MetricaMEI
-**Data:** 2026-08-25
-**Situação:** especificado e implementado no backend
+**Situação:** atendido
 
-## 1. Enunciado original
+## 1. Enunciado
 
 > O sistema deve apresentar indicadores consolidados em um painel de análise.
 
-## 2. Por que o enunciado precisou ser refinado
+A seção 7 do documento de projeto detalha o que o painel deve conter:
 
-O enunciado não é verificável na forma em que está. Ele não diz **quais** indicadores, **sobre quais dados** eles são calculados, nem **em que recorte de tempo**. Duas implementações radicalmente diferentes — uma somando todo o histórico, outra usando só a última medição — atenderiam igualmente ao texto, produzindo números que divergem em centenas por cento.
+> - Totais gerais (soma de visualizações, curtidas, etc.)
+> - Desempenho por plataforma
+> - Ranking dos conteúdos de maior alcance
 
-Como não existe protótipo de tela nem definição de período no documento de requisitos, as lacunas foram fechadas por decisão de projeto. Cada decisão está registrada abaixo com a sua justificativa, para que a escolha possa ser auditada e, se necessário, revista.
+## 2. O que o enunciado não resolve
 
-## 3. Decomposição do requisito
+O enunciado isolado não é verificável: não diz sobre quais dados os indicadores são calculados nem em que recorte de tempo. Duas implementações com resultados divergentes em centenas por cento atenderiam ao mesmo texto.
 
-O verbo do enunciado é **apresentar**. Apresentar é responsabilidade da interface, não do backend, que apenas disponibiliza os dados. O requisito foi decomposto em duas partes com entregas distintas:
+A lista da seção 7 fecha o *quê*. As decisões abaixo fecham o *como*, e cada uma está registrada com a sua justificativa.
 
-| Parte | Descrição | Entrega |
-|---|---|---|
-| RF05.1 | O sistema deve disponibilizar os indicadores consolidados do usuário autenticado | Marco 0.6 — concluída |
-| RF05.2 | O sistema deve apresentar esses indicadores em um painel de análise | Marco 0.7 — frontend |
-
-A decomposição evita declarar o requisito como concluído enquanto não houver tela, e ao mesmo tempo permite verificar a parte de dados de forma independente e automatizada.
-
-## 4. Indicadores especificados
-
-O painel disponibiliza nove indicadores, obtidos em uma única requisição a `GET /painel`:
-
-| Indicador | Descrição |
-|---|---|
-| `total_conteudos` | Quantidade de conteúdos cadastrados pelo usuário |
-| `conteudos_com_metricas` | Quantos desses conteúdos possuem ao menos uma medição |
-| `total_visualizacoes` | Soma das visualizações |
-| `total_curtidas` | Soma das curtidas |
-| `total_comentarios` | Soma dos comentários |
-| `total_compartilhamentos` | Soma dos compartilhamentos |
-| `total_alcance` | Soma do alcance |
-| `engajamento_geral` | Índice de engajamento consolidado da conta |
-| `melhores_conteudos` | Ranking dos conteúdos de melhor desempenho |
-
-### Justificativa da escolha
-
-Os cinco totais são os mesmos campos que o RF03 já obriga o usuário a registrar. Consolidar exatamente o que é coletado mantém o painel rastreável: todo número exibido tem origem verificável em um registro que o próprio usuário inseriu, sem estimativa ou dado derivado de fonte externa.
-
-`engajamento_geral` é o único indicador calculado, e reaproveita a fórmula já definida pelo RF04. O painel não introduz nenhuma regra de cálculo nova.
-
-`conteudos_com_metricas` foi incluído porque `total_conteudos` isolado induz a erro de leitura: um usuário com doze conteúdos e dois medidos veria totais baixos e concluiria que teve mau desempenho, quando na verdade a base de medição é pequena. O par de contadores torna a cobertura dos dados explícita.
-
-`melhores_conteudos` responde à pergunta que motiva o sistema — qual conteúdo dá mais retorno — que nenhum total agregado consegue responder.
-
-## 5. Regra de consolidação
+## 3. Regra de consolidação
 
 **Cada conteúdo entra nos totais uma única vez, pela sua medição mais recente.**
 
-Esta é a regra mais importante da especificação, e não decorre do enunciado do RF05: decorre do RF03. As métricas são snapshots cumulativos, em que cada registro contém o total observado na plataforma até a sua data de referência, e não o incremento do dia.
+Esta é a decisão mais importante do requisito, e não decorre do RF05: decorre do RF03. As métricas são snapshots cumulativos, em que cada registro contém o total observado até a sua data de referência.
 
-Somar todo o histórico contaria repetidamente o mesmo desempenho. Um conteúdo com cinco medições apareceria com aproximadamente cinco vezes as visualizações que realmente teve, e o erro cresceria à medida que o usuário registrasse mais medições — ou seja, o painel ficaria progressivamente mais errado justamente para os usuários mais assíduos.
+Somar todo o histórico contaria repetidamente o mesmo desempenho. Um conteúdo com cinco medições apareceria com aproximadamente cinco vezes as visualizações reais, e o erro cresceria conforme o usuário registrasse mais medições — ou seja, o painel ficaria progressivamente mais errado justamente para os usuários mais assíduos.
 
 O critério de "mais recente" é a maior `data_referencia`, com desempate pelo maior identificador.
 
-## 6. Consolidação do engajamento
+## 4. Totais gerais
 
-O índice da conta é calculado sobre os totais:
+```text
+total_conteudos           quantidade de conteúdos do usuário
+conteudos_com_metricas    quantos deles já têm ao menos uma medição
+total_visualizacoes       soma das medições mais recentes
+total_curtidas            soma das medições mais recentes
+total_comentarios         soma das medições mais recentes
+total_compartilhamentos   soma das medições mais recentes
+total_alcance             soma das medições mais recentes
+engajamento_geral         índice consolidado da conta
+```
+
+`conteudos_com_metricas` não estava na lista da seção 7 e foi acrescentado porque `total_conteudos` sozinho induz a erro de leitura: um usuário com doze conteúdos e dois medidos veria totais baixos e concluiria mau desempenho, quando a base de medição é que é pequena.
+
+### Engajamento geral
+
+Calculado sobre os totais, reaproveitando a fórmula do RF04:
 
 ```text
 (total_curtidas + total_comentarios + total_compartilhamentos)
@@ -71,96 +54,100 @@ O índice da conta é calculado sobre os totais:
                        total_alcance
 ```
 
-E **não** como média aritmética dos engajamentos individuais.
+E **não** como média aritmética dos índices individuais. A média trata todos os conteúdos como equivalentes: um conteúdo visto por dez pessoas e curtido por uma teria 10% e pesaria o mesmo que um visto por cinquenta mil. Conteúdos de alcance minúsculo, que são estatisticamente ruidosos, dominariam o indicador da conta.
 
-### Justificativa
+O campo se chama `engajamento_geral`, e não `engajamento_medio`, porque o valor não é uma média.
 
-A média das médias trata todos os conteúdos como equivalentes, independentemente da audiência que alcançaram. Um conteúdo visto por dez pessoas e curtido por uma tem engajamento de 10%, e na média pesaria o mesmo que um conteúdo visto por cinquenta mil.
+Alcance total zero devolve nulo, pela mesma razão do RF04.
 
-O efeito prático é perverso: conteúdos de alcance minúsculo, que são estatisticamente ruidosos, dominariam o indicador da conta. O índice consolidado pondera naturalmente pela audiência e responde à pergunta correta — qual o engajamento da conta como um todo.
+## 5. Desempenho por plataforma
 
-Por isso o campo se chama `engajamento_geral`, e não `engajamento_medio`: o valor não é uma média, e nomeá-lo assim descreveria errado o que a conta faz.
+Para cada rede, os mesmos cinco totais mais a quantidade de conteúdos medidos e o índice consolidado daquela plataforma.
 
-Quando `total_alcance` é zero, o indicador é `null`, e não zero, pela mesma razão já estabelecida no RF04: o índice não é calculável, e zero significaria desempenho nulo.
+Ordenado por alcance total decrescente: a rede onde o usuário alcança mais pessoas é a informação que ele procura primeiro.
 
-## 7. Ranking
+### Agrupamento ignora maiúsculas
 
-`melhores_conteudos` contém no máximo **cinco** conteúdos, ordenados por engajamento decrescente, com desempate por data de referência e identificador, ambos decrescentes.
+`plataforma` é texto livre digitado pelo usuário (RF02). Agrupar pela string exata partiria "Instagram" e "instagram" em duas linhas da mesma rede, o que o usuário leria como defeito.
 
-Ficam fora do ranking os conteúdos sem nenhuma medição e os conteúdos cuja medição mais recente tem alcance zero. Nos dois casos não existe índice comparável, e atribuir zero rebaixaria injustamente um conteúdo que não teve desempenho ruim — apenas não teve desempenho medido.
+Entre grafias concorrentes prevalece a do conteúdo cadastrado primeiro. É uma regra determinística: sem ela, o rótulo mudaria conforme a ordenação da listagem.
 
-O limite de cinco é uma decisão de projeto: o painel destaca os melhores casos para orientar a próxima publicação, e uma lista longa deixaria de ser destaque para virar a listagem completa, que o RF02 já oferece em `GET /conteudos`.
+## 6. Ranking dos conteúdos de maior alcance
 
-Cada item do ranking carrega identificador, título, plataforma, engajamento e data de referência, o suficiente para a interface identificar o conteúdo e a data da medição sem uma segunda requisição.
+No máximo cinco conteúdos, ordenados por alcance decrescente, com desempate por data de referência e identificador.
 
-## 8. Recorte temporal
+Cada item traz identificador, título, plataforma, alcance, índice de engajamento e data da medição.
 
-**O painel não tem filtro de período.** Ele reflete o estado atual da conta, considerando a medição mais recente de cada conteúdo, independentemente de quando foi registrada.
+O índice aparece ao lado do alcance de propósito. Sem ele, a leitura natural do ranking seria que o conteúdo mais alcançado é também o de melhor desempenho — e frequentemente não é.
 
-### Justificativa
+Entram no ranking **todos** os conteúdos com medição, inclusive os de alcance zero, que ocupam a última posição. Alcance zero é medição real e ordenável; o que fica sem valor nesse caso é apenas o índice de engajamento.
 
-O documento de requisitos não define período de análise, e adotar um por conta própria criaria um comportamento que ninguém pediu e que o usuário não teria como desligar.
+Ficam de fora apenas os conteúdos sem nenhuma medição, que não têm alcance a comparar.
 
-Além disso, filtro de período sobre dados cumulativos é semanticamente ambíguo. "Painel de agosto" pode significar o estado da conta ao fim de agosto, ou o crescimento ocorrido durante agosto — duas respostas diferentes, e a segunda exige comparar snapshots, que é análise de crescimento, não consolidação.
+O limite de cinco é decisão de projeto: o painel destaca os melhores casos para orientar a próxima publicação, e uma lista longa deixaria de ser destaque para virar a listagem completa, que o RF02 já oferece.
 
-Consolidação sem recorte é a leitura mais direta do enunciado e a que não inventa requisito. Se um período for exigido no futuro, ele deve vir acompanhado da definição de qual das duas semânticas se aplica.
+## 7. Recorte temporal
 
-## 9. Fora do escopo
+**O painel não tem filtro de período.** Reflete o estado atual da conta, considerando a medição mais recente de cada conteúdo, independentemente de quando foi registrada.
 
-Não fazem parte deste requisito, e cada exclusão tem motivo:
+O documento de projeto não define período de análise em nenhum requisito, e adotar um por conta própria criaria comportamento que ninguém pediu e que o usuário não conseguiria desligar.
+
+Há ainda uma razão semântica: filtro de período sobre dado cumulativo é ambíguo. "Painel de agosto" pode significar o estado da conta ao fim de agosto ou o crescimento ocorrido durante agosto — respostas diferentes, e a segunda é análise de evolução, não consolidação. Se um período for exigido no futuro, precisa vir com a definição de qual das duas semânticas se aplica.
+
+## 8. Entrega em duas partes
+
+O verbo do enunciado é **apresentar**, e apresentação é responsabilidade da interface.
+
+| Parte | Descrição | Entrega |
+|---|---|---|
+| RF05.1 | Disponibilizar os indicadores consolidados em `GET /painel` | Marco 0.6 |
+| RF05.2 | Apresentá-los no painel de análise | Marco 0.7 e 0.9 |
+
+Ambas estão concluídas.
+
+## 9. Estado vazio
+
+Conta sem conteúdos recebe `200` com todos os contadores em zero, índice nulo e as duas listas vazias.
+
+Ausência de dados não é erro: é o estado inicial de toda conta recém-criada. Responder `404` obrigaria a interface a tratar como falha aquilo que é a primeira tela do usuário. Cada seção do painel exibe uma orientação do que fazer para preenchê-la, em vez de área em branco.
+
+## 10. Fora do escopo
 
 | Item | Motivo |
 |---|---|
-| Gráficos | apresentação visual, pertence ao RF05.2 |
+| Gráficos | a seção 9 do documento os marca como planejados e não detalhados |
 | Crescimento entre medições | exige comparar snapshots; é análise de evolução, não consolidação |
-| Agrupamento por plataforma ou tipo | não solicitado; multiplicaria a resposta sem demanda |
-| Paginação | a resposta tem tamanho fixo de nove campos |
-| Exportação | não solicitado em nenhum requisito |
-| Integração com APIs das plataformas | os dados são de entrada manual, conforme o RF03 |
+| Filtro por período | ver seção 7 |
+| Agrupamento por tipo de conteúdo | a seção 7 pede agrupamento por plataforma, não por tipo |
+| Paginação | a resposta tem tamanho limitado por construção |
+| Integração com APIs das plataformas | fora do escopo do MVP; os dados são de entrada manual |
 
-## 10. Regras de acesso
+## 11. Critérios de aceite
 
-O painel é restrito ao usuário autenticado e considera exclusivamente os conteúdos de sua propriedade, conforme o RF06. Não há caminho pelo qual um conteúdo de outra conta influencie qualquer indicador, porque a consolidação parte da listagem de conteúdos do próprio usuário.
-
-O acesso sem token válido é rejeitado com `401`, como nas demais rotas protegidas.
-
-## 11. Estado vazio
-
-Uma conta sem conteúdos recebe `200` com todos os contadores em zero, `engajamento_geral` nulo e ranking vazio.
-
-Ausência de dados não é erro: é o estado inicial de toda conta recém-criada. Responder `404` obrigaria a interface a tratar como falha aquilo que é a primeira tela do usuário, e a distinguir "painel inexistente" de "erro real" pelo mesmo código de status.
-
-## 12. Critérios de aceite
-
-O RF05.1 é considerado atendido quando, para um usuário autenticado:
-
-1. `GET /painel` responde `200` com os nove indicadores especificados;
-2. cada conteúdo contribui para os totais apenas com a sua medição mais recente;
+1. `GET /painel` responde `200` com os totais gerais, o desempenho por plataforma e o ranking;
+2. cada conteúdo contribui apenas com a sua medição mais recente;
 3. conteúdos sem medição são contados em `total_conteudos` e não em `conteudos_com_metricas`;
-4. `engajamento_geral` corresponde ao cálculo sobre os totais, com duas casas decimais;
+4. `engajamento_geral` é calculado sobre os totais, com duas casas decimais;
 5. `engajamento_geral` é nulo quando o alcance total é zero;
-6. o ranking está ordenado por engajamento decrescente e limitado a cinco itens;
-7. o ranking exclui conteúdos sem medição e conteúdos com alcance zero;
-8. conteúdos de outros usuários não influenciam nenhum indicador;
-9. uma conta sem conteúdos recebe `200` com o painel zerado;
-10. requisições sem token válido recebem `401`.
+6. o desempenho por plataforma agrupa as redes ignorando diferença de maiúsculas;
+7. o desempenho por plataforma é ordenado por alcance decrescente;
+8. o ranking é ordenado por alcance decrescente e limitado a cinco itens;
+9. o ranking inclui conteúdo com alcance zero e exclui conteúdo sem medição;
+10. conteúdos de outros usuários não influenciam nenhum indicador;
+11. conta sem conteúdos recebe `200` com o painel zerado;
+12. requisição sem token válido recebe `401`;
+13. a interface apresenta as três seções, com estado vazio orientado.
 
-## 13. Verificação
+## 12. Rastreabilidade
 
-Todos os dez critérios são cobertos por testes automatizados:
-
-- `backend/tests/unit/test_dashboard_service.py` — critérios 2 a 8;
-- `backend/tests/integration/test_dashboard_api.py` — critérios 1, 8, 9 e 10.
-
-## 14. Rastreabilidade
-
-| Relação | Requisito |
+| Critério | Verificado em |
 |---|---|
-| Consome os dados de | RF02 (conteúdos) e RF03 (métricas) |
-| Reaproveita o cálculo de | RF04 (índice de engajamento) |
-| Respeita o isolamento de | RF06 (acesso restrito ao próprio usuário) |
-| Mantém a arquitetura de | RNF01 (Controller–Service–Repository) |
-| É verificado conforme | RNF02 (testes unitários e de integração) |
-| É protegido conforme | RNF03 (autenticação por JWT) |
+| 1 a 5, 9, 10 | `tests/unit/test_dashboard_service.py` |
+| 6, 7 | `tests/unit/test_dashboard_service.py` |
+| 8 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |
+| 11, 12 | `tests/integration/test_dashboard_api.py` |
+| 13 | `frontend/src/paginas/Painel.test.tsx`, `frontend/e2e/jornada.spec.ts` |
 
-O detalhamento técnico das decisões está em `docs/superpowers/specs/2026-08-25-dashboard-design.md`.
+Requisitos relacionados: RF02 e RF03 (dados de origem), RF04 (fórmula reaproveitada), RF06 (isolamento), RNF01, RNF02, RNF03.
+
+O detalhamento técnico está em `docs/superpowers/specs/2026-08-25-dashboard-design.md`.
