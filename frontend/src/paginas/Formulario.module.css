@@ -26,32 +26,6 @@
   font-size: 14px;
 }
 
-.campo {
-  display: block;
-  margin-bottom: 16px;
-}
-
-.rotulo {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.entrada {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--cor-borda);
-  border-radius: 8px;
-  background-color: var(--cor-superficie);
-  color: var(--cor-texto);
-}
-
-.entrada:focus {
-  outline: 2px solid var(--cor-destaque);
-  outline-offset: 1px;
-}
-
 .erro {
   margin-bottom: 16px;
   padding: 10px 12px;

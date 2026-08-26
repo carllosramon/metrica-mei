@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { ErroDaApi } from '../api/cliente'
 import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { Campo } from '../componentes/Campo'
 import estilos from './Formulario.module.css'
 
 export function Entrar() {
@@ -53,37 +54,27 @@ export function Entrar() {
           </p>
         )}
 
-        <label className={estilos.campo}>
-          <span className={estilos.rotulo}>E-mail</span>
-          <input
-            className={estilos.entrada}
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(evento) => definirEmail(evento.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="E-mail"
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(evento) => definirEmail(evento.target.value)}
+        />
 
-        <label className={estilos.campo}>
-          <span className={estilos.rotulo}>Senha</span>
-          <input
-            className={estilos.entrada}
-            type="password"
-            name="senha"
-            autoComplete="current-password"
-            required
-            value={senha}
-            onChange={(evento) => definirSenha(evento.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="Senha"
+          type="password"
+          name="senha"
+          autoComplete="current-password"
+          required
+          value={senha}
+          onChange={(evento) => definirSenha(evento.target.value)}
+        />
 
-        <button
-          className={estilos.botao}
-          type="submit"
-          disabled={enviando}
-        >
+        <button className={estilos.botao} type="submit" disabled={enviando}>
           {enviando ? 'Entrando…' : 'Entrar'}
         </button>
 

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { ErroDaApi } from '../api/cliente'
 import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { Campo } from '../componentes/Campo'
 import estilos from './Formulario.module.css'
 
 const TAMANHO_MINIMO_DA_SENHA = 8
@@ -50,54 +51,41 @@ export function Cadastrar() {
           </p>
         )}
 
-        <label className={estilos.campo}>
-          <span className={estilos.rotulo}>Nome</span>
-          <input
-            className={estilos.entrada}
-            type="text"
-            name="nome"
-            autoComplete="name"
-            required
-            minLength={2}
-            value={nome}
-            onChange={(evento) => definirNome(evento.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="Nome"
+          type="text"
+          name="nome"
+          autoComplete="name"
+          required
+          minLength={2}
+          value={nome}
+          onChange={(evento) => definirNome(evento.target.value)}
+        />
 
-        <label className={estilos.campo}>
-          <span className={estilos.rotulo}>E-mail</span>
-          <input
-            className={estilos.entrada}
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(evento) => definirEmail(evento.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="E-mail"
+          type="email"
+          name="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(evento) => definirEmail(evento.target.value)}
+        />
 
-        <label className={estilos.campo}>
-          <span className={estilos.rotulo}>Senha</span>
-          <input
-            className={estilos.entrada}
-            type="password"
-            name="senha"
-            autoComplete="new-password"
-            required
-            // O backend recusa senha com menos de 8 caracteres; avisar aqui
-            // evita uma ida ao servidor para descobrir isso.
-            minLength={TAMANHO_MINIMO_DA_SENHA}
-            value={senha}
-            onChange={(evento) => definirSenha(evento.target.value)}
-          />
-        </label>
+        <Campo
+          rotulo="Senha"
+          type="password"
+          name="senha"
+          autoComplete="new-password"
+          required
+          // O backend recusa senha com menos de 8 caracteres; avisar aqui
+          // evita uma ida ao servidor para descobrir isso.
+          minLength={TAMANHO_MINIMO_DA_SENHA}
+          value={senha}
+          onChange={(evento) => definirSenha(evento.target.value)}
+        />
 
-        <button
-          className={estilos.botao}
-          type="submit"
-          disabled={enviando}
-        >
+        <button className={estilos.botao} type="submit" disabled={enviando}>
           {enviando ? 'Criando…' : 'Criar conta'}
         </button>
 
