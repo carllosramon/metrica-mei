@@ -1,9 +1,10 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select, text
+from sqlalchemy import event, select, text
 
 from app.database.connection import (
     Base,
+    _enable_sqlite_foreign_keys,
     create_engine_from_url,
     create_session_factory,
 )
@@ -90,5 +91,48 @@ def test_sqlite_deleting_content_cascades_metrics():
             )
 
             assert deleted_metric is None
+    finally:
+        engine.dispose()
+
+
+def test_postgres_engine_does_not_use_sqlite_settings():
+    # create_engine resolve o dialeto e importa o driver, mas não conecta.
+    # Isso permite verificar o caminho não-SQLite sem um servidor no ar.
+    engine = create_engine_from_url(
+        "postgresql+psycopg://usuario:senha@localhost:5432/metricamei"
+    )
+
+    try:
+        assert engine.dialect.name == "postgresql"
+
+        # check_same_thread e o PRAGMA são remendos do SQLite: no Postgres
+        # o primeiro nem existe como parâmetro, e o segundo quebraria a
+        # conexão logo na abertura.
+        assert "check_same_thread" not in engine.dialect.create_connect_args(
+            engine.url
+        )[1]
+
+        assert not event.contains(
+            engine,
+            "connect",
+            _enable_sqlite_foreign_keys,
+        )
+    finally:
+        engine.dispose()
+
+
+def test_sqlite_engine_keeps_its_own_settings():
+    engine = create_engine_from_url(
+        "sqlite:///:memory:"
+    )
+
+    try:
+        assert engine.dialect.name == "sqlite"
+
+        assert event.contains(
+            engine,
+            "connect",
+            _enable_sqlite_foreign_keys,
+        )
     finally:
         engine.dispose()
