@@ -9,8 +9,21 @@ class DashboardContent:
     conteudo_id: int
     titulo: str
     plataforma: str
-    engajamento: float
+    alcance: int
+    engajamento: float | None
     data_referencia: date
+
+
+@dataclass(slots=True)
+class DashboardPlatform:
+    plataforma: str
+    total_conteudos: int
+    total_visualizacoes: int
+    total_curtidas: int
+    total_comentarios: int
+    total_compartilhamentos: int
+    total_alcance: int
+    engajamento: float | None
 
 
 @dataclass(slots=True)
@@ -23,4 +36,5 @@ class Dashboard:
     total_compartilhamentos: int
     total_alcance: int
     engajamento_geral: float | None
-    melhores_conteudos: list[DashboardContent]
+    desempenho_por_plataforma: list[DashboardPlatform]
+    maiores_alcances: list[DashboardContent]

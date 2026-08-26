@@ -133,13 +133,22 @@ def test_dashboard_returns_consolidated_numbers(client):
     assert body["total_alcance"] == 2000
     assert body["engajamento_geral"] == 8.55
 
-    assert [item["titulo"] for item in body["melhores_conteudos"]] == [
+    assert [item["titulo"] for item in body["maiores_alcances"]] == [
         "Reels sobre preço",
         "Carrossel de dicas",
     ]
 
-    assert body["melhores_conteudos"][0]["engajamento"] == 10.07
-    assert body["melhores_conteudos"][0]["conteudo_id"] == primeiro["id"]
+    assert body["maiores_alcances"][0]["alcance"] == 1450
+    assert body["maiores_alcances"][0]["engajamento"] == 10.07
+    assert body["maiores_alcances"][0]["conteudo_id"] == primeiro["id"]
+
+    plataformas = body["desempenho_por_plataforma"]
+
+    assert len(plataformas) == 1
+    assert plataformas[0]["plataforma"] == "Instagram"
+    assert plataformas[0]["total_conteudos"] == 2
+    assert plataformas[0]["total_alcance"] == 2000
+    assert plataformas[0]["engajamento"] == 8.55
 
 
 def test_dashboard_is_empty_for_new_user(client):
@@ -158,7 +167,7 @@ def test_dashboard_is_empty_for_new_user(client):
     assert body["conteudos_com_metricas"] == 0
     assert body["total_visualizacoes"] == 0
     assert body["engajamento_geral"] is None
-    assert body["melhores_conteudos"] == []
+    assert body["maiores_alcances"] == []
 
 
 def test_dashboard_only_sees_own_contents(client):
@@ -191,7 +200,7 @@ def test_dashboard_only_sees_own_contents(client):
 
     assert body["total_conteudos"] == 0
     assert body["total_visualizacoes"] == 0
-    assert body["melhores_conteudos"] == []
+    assert body["maiores_alcances"] == []
 
 
 def test_dashboard_returns_401_without_token(client):

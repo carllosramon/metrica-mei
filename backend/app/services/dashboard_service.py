@@ -1,9 +1,14 @@
-from app.domain.dashboard import Dashboard, DashboardContent
+from app.domain.dashboard import (
+    Dashboard,
+    DashboardContent,
+    DashboardPlatform,
+)
 from app.repositories.content_repository import ContentRepository
 from app.repositories.metric_repository import MetricRepository
 from app.services.engagement import calculate_engagement
 
-_LIMITE_MELHORES_CONTEUDOS = 5
+
+_LIMITE_MAIORES_ALCANCES = 5
 
 
 class DashboardService:
@@ -48,44 +53,108 @@ class DashboardService:
         return measured
 
     @staticmethod
-    def _best_contents(
+    def _sum_engagement(metrics) -> float | None:
+        return calculate_engagement(
+            curtidas=sum(metric.curtidas for metric in metrics),
+            comentarios=sum(metric.comentarios for metric in metrics),
+            compartilhamentos=sum(
+                metric.compartilhamentos for metric in metrics
+            ),
+            alcance=sum(metric.alcance for metric in metrics),
+        )
+
+    @staticmethod
+    def _biggest_reaches(
         measured,
     ) -> list[DashboardContent]:
         ranking = []
 
         for content, metric in measured:
-            engajamento = calculate_engagement(
-                curtidas=metric.curtidas,
-                comentarios=metric.comentarios,
-                compartilhamentos=metric.compartilhamentos,
-                alcance=metric.alcance,
-            )
-
-            # Sem índice calculável o conteúdo não é comparável com os
-            # demais, e entrar como zero o rebaixaria sem ter ido mal.
-            if engajamento is None:
-                continue
-
             ranking.append(
                 DashboardContent(
                     conteudo_id=content.id,
                     titulo=content.titulo,
                     plataforma=content.plataforma,
-                    engajamento=engajamento,
+                    alcance=metric.alcance,
+                    engajamento=calculate_engagement(
+                        curtidas=metric.curtidas,
+                        comentarios=metric.comentarios,
+                        compartilhamentos=metric.compartilhamentos,
+                        alcance=metric.alcance,
+                    ),
                     data_referencia=metric.data_referencia,
                 )
             )
 
         ranking.sort(
             key=lambda item: (
-                item.engajamento,
+                item.alcance,
                 item.data_referencia,
                 item.conteudo_id,
             ),
             reverse=True,
         )
 
-        return ranking[:_LIMITE_MELHORES_CONTEUDOS]
+        return ranking[:_LIMITE_MAIORES_ALCANCES]
+
+    @classmethod
+    def _platform_performance(
+        cls,
+        measured,
+    ) -> list[DashboardPlatform]:
+        # A plataforma é texto livre digitado pelo usuário, então "Instagram"
+        # e "instagram" precisam cair no mesmo grupo — senão o painel
+        # mostraria a mesma rede duas vezes por diferença de maiúscula.
+        grupos: dict[str, list] = {}
+        grafias: dict[str, tuple[int, str]] = {}
+
+        for content, metric in measured:
+            chave = content.plataforma.casefold()
+
+            grupos.setdefault(chave, []).append(metric)
+
+            # Entre grafias concorrentes vale a do conteúdo cadastrado
+            # primeiro, para que o rótulo não mude conforme a ordenação da
+            # listagem.
+            registrada = grafias.get(chave)
+
+            if registrada is None or content.id < registrada[0]:
+                grafias[chave] = (content.id, content.plataforma)
+
+        desempenho = []
+
+        for chave, metrics in grupos.items():
+            desempenho.append(
+                DashboardPlatform(
+                    plataforma=grafias[chave][1],
+                    total_conteudos=len(metrics),
+                    total_visualizacoes=sum(
+                        metric.visualizacoes for metric in metrics
+                    ),
+                    total_curtidas=sum(
+                        metric.curtidas for metric in metrics
+                    ),
+                    total_comentarios=sum(
+                        metric.comentarios for metric in metrics
+                    ),
+                    total_compartilhamentos=sum(
+                        metric.compartilhamentos for metric in metrics
+                    ),
+                    total_alcance=sum(
+                        metric.alcance for metric in metrics
+                    ),
+                    engajamento=cls._sum_engagement(metrics),
+                )
+            )
+
+        desempenho.sort(
+            key=lambda item: (
+                -item.total_alcance,
+                item.plataforma.casefold(),
+            ),
+        )
+
+        return desempenho
 
     def get(
         self,
@@ -97,10 +166,14 @@ class DashboardService:
 
         metrics = [metric for _, metric in measured]
 
-        total_visualizacoes = sum(metric.visualizacoes for metric in metrics)
+        total_visualizacoes = sum(
+            metric.visualizacoes for metric in metrics
+        )
         total_curtidas = sum(metric.curtidas for metric in metrics)
         total_comentarios = sum(metric.comentarios for metric in metrics)
-        total_compartilhamentos = sum(metric.compartilhamentos for metric in metrics)
+        total_compartilhamentos = sum(
+            metric.compartilhamentos for metric in metrics
+        )
         total_alcance = sum(metric.alcance for metric in metrics)
 
         return Dashboard(
@@ -114,11 +187,7 @@ class DashboardService:
             # O índice da conta sai dos totais, e não da média dos índices
             # individuais: na média, um conteúdo de alcance 10 pesaria o
             # mesmo que um de alcance 50.000.
-            engajamento_geral=calculate_engagement(
-                curtidas=total_curtidas,
-                comentarios=total_comentarios,
-                compartilhamentos=total_compartilhamentos,
-                alcance=total_alcance,
-            ),
-            melhores_conteudos=self._best_contents(measured),
+            engajamento_geral=self._sum_engagement(metrics),
+            desempenho_por_plataforma=self._platform_performance(measured),
+            maiores_alcances=self._biggest_reaches(measured),
         )
