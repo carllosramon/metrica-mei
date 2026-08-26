@@ -235,7 +235,8 @@ total_comentarios
 total_compartilhamentos
 total_alcance
 engajamento_geral
-melhores_conteudos
+desempenho_por_plataforma
+maiores_alcances
 ```
 
 Como cada métrica é um snapshot cumulativo, o painel usa **apenas a medição
@@ -246,15 +247,35 @@ O `engajamento_geral` é calculado sobre os totais, e não como média dos
 engajamentos individuais — na média, um conteúdo de alcance 10 pesaria o mesmo
 que um de alcance 50.000. Quando o alcance total é zero, o campo vem `null`.
 
-O `melhores_conteudos` traz até cinco conteúdos ordenados por engajamento
-decrescente. Conteúdos sem métrica registrada e conteúdos com alcance zero
-ficam fora do ranking, porque não têm índice comparável.
+O `desempenho_por_plataforma` agrupa as medições por rede, ignorando diferença
+de maiúsculas — `plataforma` é texto livre, e `Instagram` e `instagram` são a
+mesma rede.
+
+O `maiores_alcances` traz até cinco conteúdos ordenados por alcance decrescente,
+com o índice de engajamento ao lado para não induzir à leitura de que o mais
+alcançado é o de melhor desempenho. Conteúdos sem medição ficam de fora; os de
+alcance zero entram na última posição, apenas sem índice.
 
 Uma conta sem conteúdo nenhum recebe `200` com o painel zerado. Ausência de
 dado é a primeira tela de todo usuário novo, não uma falha.
 
 A especificação completa do requisito, com a justificativa de cada decisão e
 os critérios de aceite, está em `docs/requisitos/RF05-painel-de-analise.md`.
+
+## Requisitos
+
+Cada requisito funcional tem um documento próprio em `docs/requisitos/`, com o
+enunciado da especificação, as decisões de projeto justificadas, os critérios
+de aceite numerados e a rastreabilidade para os testes que os verificam.
+
+```text
+RF01-autenticacao.md      cadastro e autenticação
+RF02-conteudos.md         gerenciamento de conteúdos
+RF03-metricas.md          registro de métricas
+RF04-engajamento.md       índice de engajamento
+RF05-painel-de-analise.md painel de análise
+RF06-isolamento.md        acesso restrito aos próprios dados
+```
 
 ## Frontend
 
@@ -310,8 +331,18 @@ npm test
 ```
 
 ```text
-31 testes passando
+33 testes passando
 ```
+
+Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
+
+```bash
+npm run test:e2e
+```
+
+Ela cobre criar conta, cadastrar conteúdo, registrar medição e conferir o
+painel. Requer `PYTHON_BIN` apontando para o interpretador quando `python` não
+estiver no PATH.
 
 ## Banco de dados
 
@@ -496,7 +527,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-226 testes passando
+230 testes passando
 ```
 
 ## Segurança
@@ -507,7 +538,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.8 implementa:
+O Marco 0.9 implementa:
 
 ```text
 Cadastro e login
@@ -549,8 +580,8 @@ O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos
 
 As próximas etapas planejadas são:
 
-1. cobrir a jornada completa com teste de ponta a ponta;
-2. especificar os demais requisitos funcionais;
+1. avaliar a qualidade em uso com usuários, conforme a ISO/IEC 25010;
+2. adotar PostgreSQL no ambiente de produção;
 3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
