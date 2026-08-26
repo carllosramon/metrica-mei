@@ -34,3 +34,42 @@ export type Painel = {
   engajamento_geral: number | null
   melhores_conteudos: ConteudoDoRanking[]
 }
+
+export type Conteudo = {
+  id: number
+  titulo: string
+  plataforma: string
+  tipo: string
+  data_publicacao: string
+  criado_em: string
+  url_publicacao: string | null
+}
+
+export type DadosDoConteudo = {
+  titulo: string
+  plataforma: string
+  tipo: string
+  data_publicacao: string
+  url_publicacao: string | null
+}
+
+export type Metrica = {
+  id: number
+  visualizacoes: number
+  curtidas: number
+  comentarios: number
+  compartilhamentos: number
+  alcance: number
+  data_referencia: string
+  criado_em: string
+  engajamento: number | null
+}
+
+export type DadosDaMetrica = {
+  visualizacoes: number
+  curtidas: number
+  comentarios: number
+  compartilhamentos: number
+  alcance: number
+  data_referencia: string
+}
