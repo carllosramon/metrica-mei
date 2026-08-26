@@ -400,6 +400,27 @@ A migration atual mais recente é:
 0004_add_url_publicacao_conteudos
 ```
 
+### Trocando o banco de produção
+
+O projeto usa SQLite em desenvolvimento e nos testes, e prevê PostgreSQL em
+produção. A troca é apenas a variável de ambiente:
+
+```text
+DATABASE_URL=postgresql+psycopg://usuario:senha@localhost:5432/metricamei
+```
+
+Depois, `alembic upgrade head` cria o esquema no banco novo.
+
+Nenhuma regra de negócio precisa mudar, conforme o RNF05: os Services conversam
+com os contratos de repositório, as migrations usam apenas tipos portáveis, e o
+que é específico do SQLite — `check_same_thread` e o `PRAGMA foreign_keys` —
+está isolado em `create_engine_from_url`, condicionado ao prefixo da URL.
+
+> **Ainda não executado contra um PostgreSQL real.** O driver está declarado e o
+> comportamento do engine é verificado por teste, mas as migrations foram
+> aplicadas apenas em SQLite. Rodar `alembic upgrade head` contra uma instância
+> PostgreSQL é o passo que falta para a troca estar comprovada.
+
 ## Configuração do ambiente
 
 Entre na pasta do backend:
@@ -527,7 +548,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-230 testes passando
+237 testes passando
 ```
 
 ## Segurança
@@ -538,7 +559,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.9 implementa:
+O Marco 0.10 implementa:
 
 ```text
 Cadastro e login
@@ -581,7 +602,7 @@ O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos
 As próximas etapas planejadas são:
 
 1. avaliar a qualidade em uso com usuários, conforme a ISO/IEC 25010;
-2. adotar PostgreSQL no ambiente de produção;
+2. executar as migrations contra uma instância PostgreSQL real;
 3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
