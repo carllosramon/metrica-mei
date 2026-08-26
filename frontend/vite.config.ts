@@ -7,5 +7,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/testes/preparacao.ts'],
+    // Os specs do Playwright sobem servidores de verdade e não rodam
+    // no jsdom do Vitest.
+    exclude: ['node_modules/**', 'e2e/**'],
   },
 })
