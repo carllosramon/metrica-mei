@@ -13,7 +13,7 @@ import {
 import estilos from './Painel.module.css'
 
 export function Painel() {
-  const { token, usuario, sair } = usarAutenticacao()
+  const { token, usuario } = usarAutenticacao()
 
   const [dados, definirDados] = useState<DadosDoPainel | null>(null)
   const [erro, definirErro] = useState<string | null>(null)
@@ -57,10 +57,6 @@ export function Painel() {
             <p className={estilos.saudacao}>Olá, {usuario.nome}.</p>
           )}
         </div>
-
-        <button className={estilos.sair} type="button" onClick={sair}>
-          Sair
-        </button>
       </header>
 
       {erro !== null && (

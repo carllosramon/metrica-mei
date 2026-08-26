@@ -1,0 +1,54 @@
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--cor-borda);
+  background-color: var(--cor-superficie);
+}
+
+.links {
+  display: flex;
+  gap: 8px;
+}
+
+.link {
+  padding: 7px 14px;
+  border-radius: 8px;
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  background-color: var(--cor-fundo);
+}
+
+.ativo {
+  background-color: var(--cor-destaque-suave);
+  color: var(--cor-destaque);
+}
+
+.conta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nome {
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+}
+
+.sair {
+  padding: 8px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background-color: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 14px;
+  font-weight: 600;
+}

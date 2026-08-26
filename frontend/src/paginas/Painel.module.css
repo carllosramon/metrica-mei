@@ -23,15 +23,6 @@
   font-size: 14px;
 }
 
-.sair {
-  padding: 9px 16px;
-  border: 1px solid var(--cor-borda);
-  border-radius: 8px;
-  background-color: var(--cor-superficie);
-  color: var(--cor-texto);
-  font-weight: 600;
-}
-
 .indicadores {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
