@@ -273,14 +273,20 @@ frontend/src/
 Telas disponíveis:
 
 ```text
-/cadastrar   criação de conta
-/entrar      login
-/painel      painel de análise (protegido)
+/cadastrar          criação de conta
+/entrar             login
+/painel             painel de análise
+/conteudos          lista e cadastro de conteúdos
+/conteudos/:id      edição do conteúdo e histórico de medições
 ```
+
+Todas as telas exceto cadastro e login exigem sessão.
 
 A sessão guarda o token em `localStorage` e o valida contra `GET /auth/me` ao
 abrir a aplicação, porque o JWT expira em trinta minutos e o valor guardado
-pode estar vencido.
+pode estar vencido. Se o token vencer com a tela aberta, qualquer resposta
+`401` encerra a sessão e devolve o usuário ao login com aviso, em vez de
+deixá-lo numa tela que não carrega.
 
 O estilo usa CSS Modules, sem dependência adicional. A nomeação do código do
 frontend é em português, diferente do backend, que segue a convenção em inglês
@@ -304,7 +310,7 @@ npm test
 ```
 
 ```text
-18 testes passando
+31 testes passando
 ```
 
 ## Banco de dados
@@ -501,7 +507,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.7 implementa:
+O Marco 0.8 implementa:
 
 ```text
 Cadastro e login
@@ -518,7 +524,7 @@ Histórico de métricas
       ↓
 Painel consolidado
       ↓
-Painel em React
+Interface React completa
       ↓
 Ownership por conteúdo
 ```
@@ -537,14 +543,14 @@ A migration mais recente é:
 0004_add_url_publicacao_conteudos
 ```
 
-O frontend cobre cadastro, login e painel. As telas de conteúdo e de métrica fazem parte do próximo marco, e até lá esses cadastros são feitos pela API.
+O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos, registro de medições e painel de análise. Nenhuma operação depende mais de chamar a API diretamente.
 
 ## Próximas etapas
 
 As próximas etapas planejadas são:
 
-1. criar as telas de conteúdo e de métrica no frontend;
-2. implementar os próximos requisitos funcionais;
+1. cobrir a jornada completa com teste de ponta a ponta;
+2. especificar os demais requisitos funcionais;
 3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
