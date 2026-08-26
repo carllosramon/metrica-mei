@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
+  dataDeHoje,
   formatarData,
   formatarNumero,
   formatarPercentual,
@@ -39,5 +40,18 @@ describe('formatarData', () => {
   it('não volta um dia por causa do fuso horário', () => {
     // new Date('2026-01-01') vira 31/12/2025 no horário de Brasília.
     expect(formatarData('2026-01-01')).toBe('01/01/2026')
+  })
+})
+
+describe('dataDeHoje', () => {
+  it('usa o calendário local, e não o UTC', () => {
+    // Fim da tarde no Brasil já é o dia seguinte em UTC, e o formulário
+    // passaria a aceitar data futura se usasse toISOString.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-25T23:30:00-03:00'))
+
+    expect(dataDeHoje()).toBe('2026-08-25')
+
+    vi.useRealTimers()
   })
 })
