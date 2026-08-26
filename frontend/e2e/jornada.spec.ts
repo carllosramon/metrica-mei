@@ -29,7 +29,7 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
 
   await test.step('painel de conta nova vem zerado', async () => {
     await expect(
-      page.getByText('Nenhum conteúdo com engajamento calculável ainda.'),
+      page.getByText('Nenhuma medição registrada ainda.', { exact: false }),
     ).toBeVisible()
   })
 
@@ -84,7 +84,7 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
     ).toBeVisible()
   })
 
-  await test.step('conteúdo sem alcance fica fora do ranking', async () => {
+  await test.step('conteúdo sem alcance entra sem índice', async () => {
     await page.getByRole('link', { name: 'Conteúdos' }).click()
     await page.getByRole('button', { name: 'Novo conteúdo' }).click()
 
@@ -107,9 +107,12 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
     await page.getByRole('link', { name: 'Painel' }).click()
 
     await expect(page.getByText('2 com métrica registrada')).toBeVisible()
+
+    // O ranking é de alcance: a medição zerada aparece, e o que fica
+    // sem valor é apenas o índice de engajamento.
     await expect(
       page.getByRole('cell', { name: 'Story sem alcance medido' }),
-    ).toBeHidden()
+    ).toBeVisible()
   })
 
   await test.step('sair e entrar de novo devolve ao painel', async () => {

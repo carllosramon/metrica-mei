@@ -20,7 +20,8 @@ const painelVazio: DadosDoPainel = {
   total_compartilhamentos: 0,
   total_alcance: 0,
   engajamento_geral: null,
-  melhores_conteudos: [],
+  desempenho_por_plataforma: [],
+  maiores_alcances: [],
 }
 
 const autenticacao: ValorDaAutenticacao = {
@@ -84,7 +85,7 @@ describe('Painel', () => {
     renderizarPainel(painelVazio)
 
     expect(
-      await screen.findByText(/Nenhum conteúdo com engajamento calculável/),
+      await screen.findByText(/Nenhuma medição registrada ainda/),
     ).toBeInTheDocument()
   })
 
@@ -94,11 +95,12 @@ describe('Painel', () => {
       total_conteudos: 1,
       conteudos_com_metricas: 1,
       engajamento_geral: 10.07,
-      melhores_conteudos: [
+      maiores_alcances: [
         {
           conteudo_id: 7,
           titulo: 'Reels sobre preço',
           plataforma: 'Instagram',
+          alcance: 1450,
           engajamento: 10.07,
           data_referencia: '2026-08-21',
         },
@@ -125,6 +127,53 @@ describe('Painel', () => {
 
     expect(
       await screen.findByText('Não foi possível carregar o painel.'),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('Painel — desempenho por plataforma', () => {
+  it('lista cada plataforma com seus totais consolidados', async () => {
+    renderizarPainel({
+      ...painelVazio,
+      total_conteudos: 3,
+      conteudos_com_metricas: 3,
+      desempenho_por_plataforma: [
+        {
+          plataforma: 'Instagram',
+          total_conteudos: 2,
+          total_visualizacoes: 1500,
+          total_curtidas: 100,
+          total_comentarios: 10,
+          total_compartilhamentos: 10,
+          total_alcance: 1000,
+          engajamento: 12,
+        },
+        {
+          plataforma: 'TikTok',
+          total_conteudos: 1,
+          total_visualizacoes: 3000,
+          total_curtidas: 100,
+          total_comentarios: 20,
+          total_compartilhamentos: 30,
+          total_alcance: 2000,
+          engajamento: 7.5,
+        },
+      ],
+    })
+
+    expect(await screen.findByText('Instagram')).toBeInTheDocument()
+    expect(screen.getByText('TikTok')).toBeInTheDocument()
+    expect(screen.getByText('12,00%')).toBeInTheDocument()
+    expect(screen.getByText('7,50%')).toBeInTheDocument()
+  })
+
+  it('orienta quando ainda não há plataforma medida', async () => {
+    renderizarPainel(painelVazio)
+
+    expect(
+      await screen.findByText(
+        'Registre medições para comparar o desempenho das suas redes.',
+      ),
     ).toBeInTheDocument()
   })
 })

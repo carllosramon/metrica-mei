@@ -109,12 +109,61 @@ export function Painel() {
             />
           </section>
 
-          <h2 className={estilos.secao}>Melhores conteúdos</h2>
+          <h2 className={estilos.secao}>Desempenho por plataforma</h2>
 
-          {dados.melhores_conteudos.length === 0 ? (
+          {dados.desempenho_por_plataforma.length === 0 ? (
             <p className={estilos.vazio}>
-              Nenhum conteúdo com engajamento calculável ainda. Registre
-              métricas com alcance maior que zero para ver o ranking.
+              Registre medições para comparar o desempenho das suas redes.
+            </p>
+          ) : (
+            <div className={estilos.moldura}>
+              <table className={estilos.tabela}>
+                <thead>
+                  <tr>
+                    <th scope="col">Plataforma</th>
+                    <th scope="col" className={estilos.numerico}>
+                      Conteúdos
+                    </th>
+                    <th scope="col" className={estilos.numerico}>
+                      Visualizações
+                    </th>
+                    <th scope="col" className={estilos.numerico}>
+                      Alcance
+                    </th>
+                    <th scope="col" className={estilos.numerico}>
+                      Engajamento
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dados.desempenho_por_plataforma.map((plataforma) => (
+                    <tr key={plataforma.plataforma}>
+                      <td>{plataforma.plataforma}</td>
+                      <td className={estilos.numerico}>
+                        {formatarNumero(plataforma.total_conteudos)}
+                      </td>
+                      <td className={estilos.numerico}>
+                        {formatarNumero(plataforma.total_visualizacoes)}
+                      </td>
+                      <td className={estilos.numerico}>
+                        {formatarNumero(plataforma.total_alcance)}
+                      </td>
+                      <td className={estilos.numerico}>
+                        {formatarPercentual(plataforma.engajamento)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <h2 className={estilos.secao}>Conteúdos de maior alcance</h2>
+
+          {dados.maiores_alcances.length === 0 ? (
+            <p className={estilos.vazio}>
+              Nenhuma medição registrada ainda. Registre métricas dos seus
+              conteúdos para ver o ranking.
             </p>
           ) : (
             <div className={estilos.moldura}>
@@ -125,16 +174,22 @@ export function Painel() {
                     <th scope="col">Plataforma</th>
                     <th scope="col">Medição</th>
                     <th scope="col" className={estilos.numerico}>
+                      Alcance
+                    </th>
+                    <th scope="col" className={estilos.numerico}>
                       Engajamento
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dados.melhores_conteudos.map((conteudo) => (
+                  {dados.maiores_alcances.map((conteudo) => (
                     <tr key={conteudo.conteudo_id}>
                       <td>{conteudo.titulo}</td>
                       <td>{conteudo.plataforma}</td>
                       <td>{formatarData(conteudo.data_referencia)}</td>
+                      <td className={estilos.numerico}>
+                        {formatarNumero(conteudo.alcance)}
+                      </td>
                       <td className={estilos.numerico}>
                         {formatarPercentual(conteudo.engajamento)}
                       </td>

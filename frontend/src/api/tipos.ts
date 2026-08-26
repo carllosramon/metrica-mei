@@ -17,8 +17,20 @@ export type ConteudoDoRanking = {
   conteudo_id: number
   titulo: string
   plataforma: string
-  engajamento: number
+  alcance: number
+  engajamento: number | null
   data_referencia: string
+}
+
+export type DesempenhoDaPlataforma = {
+  plataforma: string
+  total_conteudos: number
+  total_visualizacoes: number
+  total_curtidas: number
+  total_comentarios: number
+  total_compartilhamentos: number
+  total_alcance: number
+  engajamento: number | null
 }
 
 export type Painel = {
@@ -32,7 +44,8 @@ export type Painel = {
   // Nulo quando o alcance total é zero: o índice não é calculável, o que é
   // diferente de um engajamento realmente zero.
   engajamento_geral: number | null
-  melhores_conteudos: ConteudoDoRanking[]
+  desempenho_por_plataforma: DesempenhoDaPlataforma[]
+  maiores_alcances: ConteudoDoRanking[]
 }
 
 export type Conteudo = {
