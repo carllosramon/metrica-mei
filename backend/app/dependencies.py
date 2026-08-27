@@ -11,10 +11,10 @@ from app.database.connection import (
 )
 from app.domain.user import User
 from app.repositories.sqlalchemy_content_repository import SQLAlchemyContentRepository
-from app.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from app.repositories.sqlalchemy_metric_repository import (
     SQLAlchemyMetricRepository,
 )
+from app.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
 from app.services.auth_service import AuthService, UnauthenticatedError
