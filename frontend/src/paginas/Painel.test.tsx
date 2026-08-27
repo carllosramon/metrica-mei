@@ -161,10 +161,17 @@ describe('Painel — desempenho por plataforma', () => {
       ],
     })
 
-    expect(await screen.findByText('Instagram')).toBeInTheDocument()
-    expect(screen.getByText('TikTok')).toBeInTheDocument()
-    expect(screen.getByText('12,00%')).toBeInTheDocument()
-    expect(screen.getByText('7,50%')).toBeInTheDocument()
+    // Cada plataforma aparece na tabela e no gráfico de barras.
+    expect(
+      await screen.findByRole('cell', { name: 'Instagram' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'TikTok' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '12,00%' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '7,50%' })).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('img', { name: /Alcance por plataforma, em 2 redes/ }),
+    ).toBeInTheDocument()
   })
 
   it('orienta quando ainda não há plataforma medida', async () => {

@@ -4,6 +4,7 @@ import { ErroDaApi } from '../api/cliente'
 import { buscarPainel } from '../api/painel'
 import type { Painel as DadosDoPainel } from '../api/tipos'
 import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { BarrasPorPlataforma } from '../componentes/BarrasPorPlataforma'
 import { CartaoIndicador } from '../componentes/CartaoIndicador'
 import {
   formatarData,
@@ -116,46 +117,52 @@ export function Painel() {
               Registre medições para comparar o desempenho das suas redes.
             </p>
           ) : (
-            <div className={estilos.moldura}>
-              <table className={estilos.tabela}>
-                <thead>
-                  <tr>
-                    <th scope="col">Plataforma</th>
-                    <th scope="col" className={estilos.numerico}>
-                      Conteúdos
-                    </th>
-                    <th scope="col" className={estilos.numerico}>
-                      Visualizações
-                    </th>
-                    <th scope="col" className={estilos.numerico}>
-                      Alcance
-                    </th>
-                    <th scope="col" className={estilos.numerico}>
-                      Engajamento
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dados.desempenho_por_plataforma.map((plataforma) => (
-                    <tr key={plataforma.plataforma}>
-                      <td>{plataforma.plataforma}</td>
-                      <td className={estilos.numerico}>
-                        {formatarNumero(plataforma.total_conteudos)}
-                      </td>
-                      <td className={estilos.numerico}>
-                        {formatarNumero(plataforma.total_visualizacoes)}
-                      </td>
-                      <td className={estilos.numerico}>
-                        {formatarNumero(plataforma.total_alcance)}
-                      </td>
-                      <td className={estilos.numerico}>
-                        {formatarPercentual(plataforma.engajamento)}
-                      </td>
+            <>
+              <BarrasPorPlataforma
+                plataformas={dados.desempenho_por_plataforma}
+              />
+
+              <div className={estilos.moldura}>
+                <table className={estilos.tabela}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Plataforma</th>
+                      <th scope="col" className={estilos.numerico}>
+                        Conteúdos
+                      </th>
+                      <th scope="col" className={estilos.numerico}>
+                        Visualizações
+                      </th>
+                      <th scope="col" className={estilos.numerico}>
+                        Alcance
+                      </th>
+                      <th scope="col" className={estilos.numerico}>
+                        Engajamento
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {dados.desempenho_por_plataforma.map((plataforma) => (
+                      <tr key={plataforma.plataforma}>
+                        <td>{plataforma.plataforma}</td>
+                        <td className={estilos.numerico}>
+                          {formatarNumero(plataforma.total_conteudos)}
+                        </td>
+                        <td className={estilos.numerico}>
+                          {formatarNumero(plataforma.total_visualizacoes)}
+                        </td>
+                        <td className={estilos.numerico}>
+                          {formatarNumero(plataforma.total_alcance)}
+                        </td>
+                        <td className={estilos.numerico}>
+                          {formatarPercentual(plataforma.engajamento)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           <h2 className={estilos.secao}>Conteúdos de maior alcance</h2>

@@ -1,0 +1,47 @@
+.grafico {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background-color: var(--cor-superficie);
+  box-shadow: var(--sombra);
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.rotulo {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trilho {
+  height: 22px;
+  border-radius: 5px;
+  background-color: var(--cor-fundo);
+  overflow: hidden;
+}
+
+.barra {
+  height: 100%;
+  border-radius: 5px;
+  background-color: var(--cor-destaque);
+  /* A barra nunca some por completo: alcance zero ainda precisa ocupar um
+     fio de largura para que a linha da plataforma seja legível. */
+  min-width: 2px;
+}
+
+.valor {
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
