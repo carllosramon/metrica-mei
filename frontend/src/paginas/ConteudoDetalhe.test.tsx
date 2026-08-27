@@ -89,7 +89,16 @@ describe('ConteudoDetalhe', () => {
 
     expect(await screen.findByText('22/08/2026')).toBeInTheDocument()
     expect(screen.getByText('3.200')).toBeInTheDocument()
-    expect(screen.getByText('10,07%')).toBeInTheDocument()
+
+    // O valor aparece na tabela e no eixo do gráfico: a busca precisa
+    // dizer de qual dos dois se trata.
+    expect(
+      screen.getByRole('cell', { name: '10,07%' }),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole('img', { name: /Evolução do engajamento/ }),
+    ).toBeInTheDocument()
   })
 
   it('mostra travessão quando a medição não tem alcance', async () => {

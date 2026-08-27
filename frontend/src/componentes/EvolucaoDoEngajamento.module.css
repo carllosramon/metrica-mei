@@ -1,0 +1,41 @@
+.grafico {
+  padding: 20px 22px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background-color: var(--cor-superficie);
+  box-shadow: var(--sombra);
+}
+
+.desenho {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.eixo {
+  stroke: var(--cor-borda);
+  stroke-width: 1;
+}
+
+.marcaDoEixo {
+  fill: var(--cor-texto-suave);
+  font-size: 13px;
+}
+
+.linha {
+  fill: none;
+  stroke: var(--cor-destaque);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ponto {
+  fill: var(--cor-destaque);
+}
+
+.legenda {
+  margin: 12px 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+}

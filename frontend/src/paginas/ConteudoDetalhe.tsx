@@ -16,6 +16,7 @@ import {
 } from '../api/metricas'
 import type { Conteudo, Metrica } from '../api/tipos'
 import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { EvolucaoDoEngajamento } from '../componentes/EvolucaoDoEngajamento'
 import { dataDeHoje } from '../formatacao'
 import estilos from './ConteudoDetalhe.module.css'
 import { FormularioDaMedicao } from './detalhe/FormularioDaMedicao'
@@ -322,12 +323,16 @@ export function ConteudoDetalhe() {
       )}
 
       {metricas !== null && metricas.length > 0 && (
-        <TabelaDeMedicoes
-          metricas={metricas}
-          metricaConfirmada={medicaoConfirmada}
-          aoEditar={abrirEdicaoDaMedicao}
-          aoExcluir={confirmarOuRemoverMedicao}
-        />
+        <>
+          <EvolucaoDoEngajamento metricas={metricas} />
+
+          <TabelaDeMedicoes
+            metricas={metricas}
+            metricaConfirmada={medicaoConfirmada}
+            aoEditar={abrirEdicaoDaMedicao}
+            aoExcluir={confirmarOuRemoverMedicao}
+          />
+        </>
       )}
     </main>
   )
