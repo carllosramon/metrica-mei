@@ -96,4 +96,17 @@ describe('EvolucaoDoEngajamento', () => {
     ).toBeInTheDocument()
     expect(container.querySelector('svg')).toBeNull()
   })
+
+  it('mantem coordenadas validas quando todo engajamento e zero', () => {
+    const { container } = render(
+      <EvolucaoDoEngajamento
+        metricas={[medicao(1, '2026-08-20', 0)]}
+      />,
+    )
+
+    const ponto = container.querySelector('circle')
+
+    expect(ponto).not.toBeNull()
+    expect(ponto).toHaveAttribute('cy', '170')
+  })
 })
