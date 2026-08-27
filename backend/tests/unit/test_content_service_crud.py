@@ -1,9 +1,14 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
+from app.domain.metric import Metric
+
 from app.repositories.in_memory_content_repository import (
     InMemoryContentRepository,
+)
+from app.repositories.in_memory_metric_repository import (
+    InMemoryMetricRepository,
 )
 from app.services.content_service import (
     ContentNotFoundError,
@@ -14,7 +19,7 @@ from app.services.content_service import (
 
 def make_service():
     repository = InMemoryContentRepository()
-    service = ContentService(repository)
+    service = ContentService(repository, InMemoryMetricRepository())
     return service, repository
 
 
@@ -330,3 +335,101 @@ def test_delete_raises_content_not_found_for_content_owned_by_another_user():
         content_id=created.id,
         user_id=1,
     ) == created
+
+
+
+def test_update_rejects_publication_date_after_existing_metric():
+    content_repository = InMemoryContentRepository()
+    metric_repository = InMemoryMetricRepository()
+    service = ContentService(
+        content_repository,
+        metric_repository,
+    )
+
+    original_publication_date = (
+        date.today() - timedelta(days=2)
+    )
+    metric_date = date.today() - timedelta(days=1)
+
+    content = service.create(
+        user_id=1,
+        titulo="Conteúdo com histórico",
+        plataforma="Instagram",
+        tipo="Reels",
+        data_publicacao=original_publication_date,
+    )
+
+    metric_repository.create(
+        Metric(
+            id=None,
+            conteudo_id=content.id,
+            visualizacoes=100,
+            curtidas=10,
+            comentarios=2,
+            compartilhamentos=1,
+            alcance=80,
+            data_referencia=metric_date,
+            criado_em=datetime.now(timezone.utc),
+        )
+    )
+
+    with pytest.raises(InvalidContentError):
+        service.update(
+            content_id=content.id,
+            user_id=1,
+            data_publicacao=date.today(),
+        )
+
+    unchanged = service.get(
+        content_id=content.id,
+        user_id=1,
+    )
+
+    assert (
+        unchanged.data_publicacao
+        == original_publication_date
+    )
+
+
+def test_update_accepts_publication_date_equal_to_existing_metric():
+    content_repository = InMemoryContentRepository()
+    metric_repository = InMemoryMetricRepository()
+    service = ContentService(
+        content_repository,
+        metric_repository,
+    )
+
+    original_publication_date = (
+        date.today() - timedelta(days=2)
+    )
+    metric_date = date.today() - timedelta(days=1)
+
+    content = service.create(
+        user_id=1,
+        titulo="Conteúdo com histórico",
+        plataforma="Instagram",
+        tipo="Reels",
+        data_publicacao=original_publication_date,
+    )
+
+    metric_repository.create(
+        Metric(
+            id=None,
+            conteudo_id=content.id,
+            visualizacoes=100,
+            curtidas=10,
+            comentarios=2,
+            compartilhamentos=1,
+            alcance=80,
+            data_referencia=metric_date,
+            criado_em=datetime.now(timezone.utc),
+        )
+    )
+
+    updated = service.update(
+        content_id=content.id,
+        user_id=1,
+        data_publicacao=metric_date,
+    )
+
+    assert updated.data_publicacao == metric_date
