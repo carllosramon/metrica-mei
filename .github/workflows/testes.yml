@@ -41,6 +41,9 @@ jobs:
 
       - run: npm ci
 
+      - name: verificar o lint
+        run: npm run lint
+
       - name: verificar os tipos
         run: npx tsc -b
 
