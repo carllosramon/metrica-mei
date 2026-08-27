@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { ErroDaApi } from '../api/cliente'
 import { criarConteudo, listarConteudos } from '../api/conteudos'
 import type { Conteudo } from '../api/tipos'
-import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { Campo } from '../componentes/Campo'
 import { dataDeHoje, formatarData } from '../formatacao'
 import estilos from './Conteudos.module.css'
@@ -19,7 +19,7 @@ const FORMULARIO_VAZIO = {
 }
 
 export function Conteudos() {
-  const { token } = usarAutenticacao()
+  const { token } = useAutenticacao()
 
   const [conteudos, definirConteudos] = useState<Conteudo[] | null>(null)
   const [erro, definirErro] = useState<string | null>(null)

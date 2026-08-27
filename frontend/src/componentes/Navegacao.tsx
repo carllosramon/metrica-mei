@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 
-import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import estilos from './Navegacao.module.css'
 
 function classeDoLink({ isActive }: { isActive: boolean }): string {
@@ -10,7 +10,7 @@ function classeDoLink({ isActive }: { isActive: boolean }): string {
 }
 
 export function Navegacao() {
-  const { usuario, sair } = usarAutenticacao()
+  const { usuario, sair } = useAutenticacao()
 
   return (
     <header className={estilos.barra}>

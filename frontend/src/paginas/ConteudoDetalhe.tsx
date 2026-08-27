@@ -15,7 +15,7 @@ import {
   listarMetricas,
 } from '../api/metricas'
 import type { Conteudo, Metrica } from '../api/tipos'
-import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { EvolucaoDoEngajamento } from '../componentes/EvolucaoDoEngajamento'
 import { dataDeHoje } from '../formatacao'
 import estilos from './ConteudoDetalhe.module.css'
@@ -53,7 +53,7 @@ function urlOuNulo(valor: string): string | null {
 }
 
 export function ConteudoDetalhe() {
-  const { token } = usarAutenticacao()
+  const { token } = useAutenticacao()
   const { conteudoId } = useParams()
   const navegar = useNavigate()
 
