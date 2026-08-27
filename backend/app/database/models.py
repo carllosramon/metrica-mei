@@ -84,6 +84,10 @@ class ContentModel(Base):
 class MetricModel(Base):
     __tablename__ = "metricas"
 
+    # A unicidade vive no banco, e não só na verificação do serviço: sem a
+    # constraint, duas requisições simultâneas passariam pela verificação
+    # antes de qualquer uma gravar, e o conteúdo ficaria com duas medições
+    # contraditórias da mesma data.
     __table_args__ = (
         UniqueConstraint(
             "conteudo_id",

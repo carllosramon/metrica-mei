@@ -22,6 +22,9 @@ class TokenService:
 
         return jwt.encode(
             {
+                # O padrão JWT exige que a reivindicação sub seja textual,
+                # então o identificador vai como string e volta convertido
+                # em decode_subject.
                 "sub": str(user_id),
                 "exp": expires_at,
             },
@@ -39,6 +42,9 @@ class TokenService:
 
             return int(payload["sub"])
 
+        # Token ausente de sub, com sub não numérico ou corrompido é
+        # token sem dono: quem chama trata os três casos igual, e por isso
+        # todos viram None em vez de exceções diferentes.
         except (
             ExpiredSignatureError,
             InvalidTokenError,

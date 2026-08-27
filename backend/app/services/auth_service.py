@@ -39,6 +39,9 @@ class AuthService:
         email: str,
         senha: str,
     ) -> User:
+        # O e-mail é comparado sem diferenciar maiúsculas, então precisa
+        # ser normalizado antes da busca de duplicata e antes de gravar:
+        # senão Joao@ e joao@ criariam duas contas.
         normalized_name = nome.strip()
         normalized_email = email.strip().lower()
 

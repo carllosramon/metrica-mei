@@ -77,6 +77,9 @@ class MetricService:
 
             value = values[field]
 
+            # A comparação é com type, e não isinstance, porque bool é
+            # subclasse de int em Python: com isinstance, curtidas=True
+            # passaria como métrica válida e viraria 1 no banco.
             if (
                 type(value) is not int
                 or value < 0
