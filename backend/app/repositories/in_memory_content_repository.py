@@ -1,4 +1,4 @@
-﻿from dataclasses import replace
+from dataclasses import replace
 
 from app.domain.content import Content
 

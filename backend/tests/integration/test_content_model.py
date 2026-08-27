@@ -1,4 +1,4 @@
-﻿from app.database import models
+from app.database import models
 from app.database.connection import Base
 
 
