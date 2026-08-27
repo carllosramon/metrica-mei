@@ -16,16 +16,15 @@ import {
 } from '../api/metricas'
 import type { Conteudo, Metrica } from '../api/tipos'
 import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
-import { Campo } from '../componentes/Campo'
-import {
-  dataDeHoje,
-  formatarData,
-  formatarNumero,
-  formatarPercentual,
-} from '../formatacao'
+import { dataDeHoje } from '../formatacao'
 import estilos from './ConteudoDetalhe.module.css'
+import { FormularioDaMedicao } from './detalhe/FormularioDaMedicao'
+import type { DadosDaMedicao } from './detalhe/FormularioDaMedicao'
+import { FormularioDoConteudo } from './detalhe/FormularioDoConteudo'
+import type { DadosEditaveis } from './detalhe/FormularioDoConteudo'
+import { TabelaDeMedicoes } from './detalhe/TabelaDeMedicoes'
 
-const METRICA_VAZIA = {
+const MEDICAO_VAZIA: DadosDaMedicao = {
   visualizacoes: '0',
   curtidas: '0',
   comentarios: '0',
@@ -34,8 +33,22 @@ const METRICA_VAZIA = {
   data_referencia: dataDeHoje(),
 }
 
+const CONTEUDO_VAZIO: DadosEditaveis = {
+  titulo: '',
+  plataforma: '',
+  tipo: '',
+  data_publicacao: '',
+  url_publicacao: '',
+}
+
 function mensagemDe(falha: unknown, alternativa: string): string {
   return falha instanceof ErroDaApi ? falha.message : alternativa
+}
+
+// Campo em branco significa remover a URL, e o backend recusa texto vazio:
+// null é como ele entende a remoção.
+function urlOuNulo(valor: string): string | null {
+  return valor.trim() === '' ? null : valor
 }
 
 export function ConteudoDetalhe() {
@@ -48,27 +61,19 @@ export function ConteudoDetalhe() {
   const [conteudo, definirConteudo] = useState<Conteudo | null>(null)
   const [metricas, definirMetricas] = useState<Metrica[] | null>(null)
   const [erro, definirErro] = useState<string | null>(null)
+  const [enviando, definirEnviando] = useState(false)
 
-  const [dadosDoConteudo, definirDadosDoConteudo] = useState({
-    titulo: '',
-    plataforma: '',
-    tipo: '',
-    data_publicacao: '',
-    url_publicacao: '',
-  })
-
+  const [dadosDoConteudo, definirDadosDoConteudo] = useState(CONTEUDO_VAZIO)
   const [confirmandoExclusao, definirConfirmandoExclusao] = useState(false)
-  const [metricaConfirmada, definirMetricaConfirmada] = useState<
-    number | null
-  >(null)
 
+  const [medicao, definirMedicao] = useState(MEDICAO_VAZIA)
   const [formularioAberto, definirFormularioAberto] = useState(false)
-  const [metricaEmEdicao, definirMetricaEmEdicao] = useState<number | null>(
+  const [medicaoEmEdicao, definirMedicaoEmEdicao] = useState<number | null>(
     null,
   )
-  const [formularioDaMetrica, definirFormularioDaMetrica] =
-    useState(METRICA_VAZIA)
-  const [enviando, definirEnviando] = useState(false)
+  const [medicaoConfirmada, definirMedicaoConfirmada] = useState<
+    number | null
+  >(null)
 
   const carregar = useCallback(async () => {
     if (token === null) {
@@ -116,12 +121,7 @@ export function ConteudoDetalhe() {
     try {
       await atualizarConteudo(token, identificador, {
         ...dadosDoConteudo,
-        // Campo em branco significa remover a URL, e o backend recusa texto
-        // vazio — null é como ele entende a remoção.
-        url_publicacao:
-          dadosDoConteudo.url_publicacao.trim() === ''
-            ? null
-            : dadosDoConteudo.url_publicacao,
+        url_publicacao: urlOuNulo(dadosDoConteudo.url_publicacao),
       })
 
       await carregar()
@@ -145,15 +145,15 @@ export function ConteudoDetalhe() {
     }
   }
 
-  function abrirNovaMetrica() {
-    definirMetricaEmEdicao(null)
-    definirFormularioDaMetrica(METRICA_VAZIA)
+  function abrirNovaMedicao() {
+    definirMedicaoEmEdicao(null)
+    definirMedicao(MEDICAO_VAZIA)
     definirFormularioAberto(true)
   }
 
-  function abrirEdicaoDaMetrica(metrica: Metrica) {
-    definirMetricaEmEdicao(metrica.id)
-    definirFormularioDaMetrica({
+  function abrirEdicaoDaMedicao(metrica: Metrica) {
+    definirMedicaoEmEdicao(metrica.id)
+    definirMedicao({
       visualizacoes: String(metrica.visualizacoes),
       curtidas: String(metrica.curtidas),
       comentarios: String(metrica.comentarios),
@@ -164,7 +164,7 @@ export function ConteudoDetalhe() {
     definirFormularioAberto(true)
   }
 
-  async function salvarMetrica(evento: FormEvent) {
+  async function salvarMedicao(evento: FormEvent) {
     evento.preventDefault()
 
     if (token === null) {
@@ -175,19 +175,19 @@ export function ConteudoDetalhe() {
     definirEnviando(true)
 
     const dados = {
-      visualizacoes: Number(formularioDaMetrica.visualizacoes),
-      curtidas: Number(formularioDaMetrica.curtidas),
-      comentarios: Number(formularioDaMetrica.comentarios),
-      compartilhamentos: Number(formularioDaMetrica.compartilhamentos),
-      alcance: Number(formularioDaMetrica.alcance),
-      data_referencia: formularioDaMetrica.data_referencia,
+      visualizacoes: Number(medicao.visualizacoes),
+      curtidas: Number(medicao.curtidas),
+      comentarios: Number(medicao.comentarios),
+      compartilhamentos: Number(medicao.compartilhamentos),
+      alcance: Number(medicao.alcance),
+      data_referencia: medicao.data_referencia,
     }
 
     try {
-      if (metricaEmEdicao === null) {
+      if (medicaoEmEdicao === null) {
         await criarMetrica(token, identificador, dados)
       } else {
-        await atualizarMetrica(token, identificador, metricaEmEdicao, dados)
+        await atualizarMetrica(token, identificador, medicaoEmEdicao, dados)
       }
 
       definirFormularioAberto(false)
@@ -207,28 +207,34 @@ export function ConteudoDetalhe() {
     }
   }
 
-  async function removerMetrica(metricaId: number) {
+  async function removerMedicao(metricaId: number) {
     if (token === null) {
       return
     }
 
     try {
       await excluirMetrica(token, identificador, metricaId)
-      definirMetricaConfirmada(null)
+      definirMedicaoConfirmada(null)
       await carregar()
     } catch (falha) {
       definirErro(mensagemDe(falha, 'Não foi possível excluir a medição.'))
     }
   }
 
-  function alterarMetrica(campo: keyof typeof METRICA_VAZIA, valor: string) {
-    definirFormularioDaMetrica((atual) => ({ ...atual, [campo]: valor }))
+  function confirmarOuRemoverMedicao(metricaId: number) {
+    if (medicaoConfirmada === metricaId) {
+      void removerMedicao(metricaId)
+      return
+    }
+
+    definirMedicaoConfirmada(metricaId)
   }
 
-  function alterarConteudo(
-    campo: keyof typeof dadosDoConteudo,
-    valor: string,
-  ) {
+  function alterarMedicao(campo: keyof DadosDaMedicao, valor: string) {
+    definirMedicao((atual) => ({ ...atual, [campo]: valor }))
+  }
+
+  function alterarConteudo(campo: keyof DadosEditaveis, valor: string) {
     definirDadosDoConteudo((atual) => ({ ...atual, [campo]: valor }))
   }
 
@@ -276,61 +282,12 @@ export function ConteudoDetalhe() {
         </p>
       )}
 
-      <form className={estilos.cartao} onSubmit={salvarConteudo}>
-        <Campo
-          rotulo="Título"
-          value={dadosDoConteudo.titulo}
-          onChange={(evento) => alterarConteudo('titulo', evento.target.value)}
-          required
-          maxLength={200}
-        />
-
-        <div className={estilos.linhaDeCampos}>
-          <Campo
-            rotulo="Plataforma"
-            value={dadosDoConteudo.plataforma}
-            onChange={(evento) =>
-              alterarConteudo('plataforma', evento.target.value)
-            }
-            required
-            maxLength={50}
-          />
-          <Campo
-            rotulo="Tipo"
-            value={dadosDoConteudo.tipo}
-            onChange={(evento) => alterarConteudo('tipo', evento.target.value)}
-            required
-            maxLength={50}
-          />
-          <Campo
-            rotulo="Data de publicação"
-            type="date"
-            value={dadosDoConteudo.data_publicacao}
-            onChange={(evento) =>
-              alterarConteudo('data_publicacao', evento.target.value)
-            }
-            required
-            max={dataDeHoje()}
-          />
-        </div>
-
-        <Campo
-          rotulo="URL da publicação"
-          type="url"
-          value={dadosDoConteudo.url_publicacao}
-          onChange={(evento) =>
-            alterarConteudo('url_publicacao', evento.target.value)
-          }
-          maxLength={500}
-          dica="Deixe em branco para remover a URL"
-        />
-
-        <div className={estilos.botoes}>
-          <button className={estilos.acao} type="submit" disabled={enviando}>
-            Salvar alterações
-          </button>
-        </div>
-      </form>
+      <FormularioDoConteudo
+        dados={dadosDoConteudo}
+        enviando={enviando}
+        aoAlterar={alterarConteudo}
+        aoEnviar={salvarConteudo}
+      />
 
       <h2 className={estilos.secao}>Medições</h2>
 
@@ -339,7 +296,7 @@ export function ConteudoDetalhe() {
           <button
             className={estilos.acao}
             type="button"
-            onClick={abrirNovaMetrica}
+            onClick={abrirNovaMedicao}
           >
             Registrar medição
           </button>
@@ -347,90 +304,14 @@ export function ConteudoDetalhe() {
       )}
 
       {formularioAberto && (
-        <form className={estilos.cartao} onSubmit={salvarMetrica}>
-          <div className={estilos.linhaDeCampos}>
-            <Campo
-              rotulo="Data de referência"
-              type="date"
-              value={formularioDaMetrica.data_referencia}
-              onChange={(evento) =>
-                alterarMetrica('data_referencia', evento.target.value)
-              }
-              required
-              min={conteudo.data_publicacao}
-              max={dataDeHoje()}
-            />
-            <Campo
-              rotulo="Visualizações"
-              type="number"
-              value={formularioDaMetrica.visualizacoes}
-              onChange={(evento) =>
-                alterarMetrica('visualizacoes', evento.target.value)
-              }
-              required
-              min={0}
-              step={1}
-            />
-            <Campo
-              rotulo="Alcance"
-              type="number"
-              value={formularioDaMetrica.alcance}
-              onChange={(evento) =>
-                alterarMetrica('alcance', evento.target.value)
-              }
-              required
-              min={0}
-              step={1}
-              dica="Zero deixa o engajamento sem cálculo"
-            />
-            <Campo
-              rotulo="Curtidas"
-              type="number"
-              value={formularioDaMetrica.curtidas}
-              onChange={(evento) =>
-                alterarMetrica('curtidas', evento.target.value)
-              }
-              required
-              min={0}
-              step={1}
-            />
-            <Campo
-              rotulo="Comentários"
-              type="number"
-              value={formularioDaMetrica.comentarios}
-              onChange={(evento) =>
-                alterarMetrica('comentarios', evento.target.value)
-              }
-              required
-              min={0}
-              step={1}
-            />
-            <Campo
-              rotulo="Compartilhamentos"
-              type="number"
-              value={formularioDaMetrica.compartilhamentos}
-              onChange={(evento) =>
-                alterarMetrica('compartilhamentos', evento.target.value)
-              }
-              required
-              min={0}
-              step={1}
-            />
-          </div>
-
-          <div className={estilos.botoes}>
-            <button className={estilos.acao} type="submit" disabled={enviando}>
-              {enviando ? 'Salvando…' : 'Salvar medição'}
-            </button>
-            <button
-              className={`${estilos.acao} ${estilos.secundario}`}
-              type="button"
-              onClick={() => definirFormularioAberto(false)}
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+        <FormularioDaMedicao
+          dados={medicao}
+          enviando={enviando}
+          dataDaPublicacao={conteudo.data_publicacao}
+          aoAlterar={alterarMedicao}
+          aoEnviar={salvarMedicao}
+          aoCancelar={() => definirFormularioAberto(false)}
+        />
       )}
 
       {metricas !== null && metricas.length === 0 && (
@@ -441,83 +322,12 @@ export function ConteudoDetalhe() {
       )}
 
       {metricas !== null && metricas.length > 0 && (
-        <div className={estilos.moldura}>
-          <table className={estilos.tabela}>
-            <thead>
-              <tr>
-                <th scope="col">Data</th>
-                <th scope="col" className={estilos.numerico}>
-                  Visualizações
-                </th>
-                <th scope="col" className={estilos.numerico}>
-                  Alcance
-                </th>
-                <th scope="col" className={estilos.numerico}>
-                  Curtidas
-                </th>
-                <th scope="col" className={estilos.numerico}>
-                  Comentários
-                </th>
-                <th scope="col" className={estilos.numerico}>
-                  Compart.
-                </th>
-                <th scope="col" className={estilos.numerico}>
-                  Engajamento
-                </th>
-                <th scope="col">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metricas.map((metrica) => (
-                <tr key={metrica.id}>
-                  <td>{formatarData(metrica.data_referencia)}</td>
-                  <td className={estilos.numerico}>
-                    {formatarNumero(metrica.visualizacoes)}
-                  </td>
-                  <td className={estilos.numerico}>
-                    {formatarNumero(metrica.alcance)}
-                  </td>
-                  <td className={estilos.numerico}>
-                    {formatarNumero(metrica.curtidas)}
-                  </td>
-                  <td className={estilos.numerico}>
-                    {formatarNumero(metrica.comentarios)}
-                  </td>
-                  <td className={estilos.numerico}>
-                    {formatarNumero(metrica.compartilhamentos)}
-                  </td>
-                  <td className={estilos.numerico}>
-                    {formatarPercentual(metrica.engajamento)}
-                  </td>
-                  <td>
-                    <div className={estilos.linhaDeAcoes}>
-                      <button
-                        className={estilos.botaoDaLinha}
-                        type="button"
-                        onClick={() => abrirEdicaoDaMetrica(metrica)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className={estilos.botaoDaLinha}
-                        type="button"
-                        onClick={() =>
-                          metricaConfirmada === metrica.id
-                            ? void removerMetrica(metrica.id)
-                            : definirMetricaConfirmada(metrica.id)
-                        }
-                      >
-                        {metricaConfirmada === metrica.id
-                          ? 'Confirmar'
-                          : 'Excluir'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TabelaDeMedicoes
+          metricas={metricas}
+          metricaConfirmada={medicaoConfirmada}
+          aoEditar={abrirEdicaoDaMedicao}
+          aoExcluir={confirmarOuRemoverMedicao}
+        />
       )}
     </main>
   )
