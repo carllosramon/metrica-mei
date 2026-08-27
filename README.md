@@ -251,6 +251,11 @@ O `desempenho_por_plataforma` agrupa as medições por rede, ignorando diferenç
 de maiúsculas — `plataforma` é texto livre, e `Instagram` e `instagram` são a
 mesma rede.
 
+As duas seções vêm acompanhadas de visualização gráfica: barras comparando o
+alcance das plataformas e, na tela de um conteúdo, uma linha com a evolução do
+engajamento ao longo das medições. Os gráficos acompanham as tabelas em vez de
+substituí-las — a tabela continua sendo a leitura exata dos mesmos números.
+
 O `maiores_alcances` traz até cinco conteúdos ordenados por alcance decrescente,
 com o índice de engajamento ao lado para não induzir à leitura de que o mais
 alcançado é o de melhor desempenho. Conteúdos sem medição ficam de fora; os de
@@ -331,7 +336,7 @@ npm test
 ```
 
 ```text
-33 testes passando
+42 testes passando
 ```
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
@@ -551,6 +556,15 @@ No estado atual do desenvolvimento:
 237 testes passando
 ```
 
+## Integração contínua
+
+Cada push e cada pull request disparam a suíte inteira em três trabalhos
+paralelos: backend, frontend e a jornada de ponta a ponta. Quando a jornada
+falha, o relatório do navegador fica anexado à execução, mostrando em que passo
+ela parou.
+
+A configuração está em `.github/workflows/testes.yml`.
+
 ## Segurança
 
 O projeto atualmente utiliza Argon2 para hash de senhas, JWT com algoritmo HS256, access token com expiração, variáveis de ambiente para segredos e isolamento dos recursos pelo usuário autenticado.
@@ -559,7 +573,7 @@ Segredos e arquivos locais de banco de dados não são versionados.
 
 ## Estado atual do desenvolvimento
 
-O Marco 0.10 implementa:
+O Marco 0.11 implementa:
 
 ```text
 Cadastro e login
