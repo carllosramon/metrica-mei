@@ -1,8 +1,10 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database.models import UserModel
 from app.domain.user import User
+from app.repositories.user_repository import UserPersistenceConflictError
 
 
 class SQLAlchemyUserRepository:
@@ -51,7 +53,15 @@ class SQLAlchemyUserRepository:
         )
 
         self._session.add(model)
-        self._session.commit()
+
+        try:
+            self._session.commit()
+        except IntegrityError as exc:
+            self._session.rollback()
+            raise UserPersistenceConflictError(
+                "Conflito ao persistir o usuário."
+            ) from exc
+
         self._session.refresh(model)
 
         return self._to_domain(model)

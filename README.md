@@ -553,7 +553,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-243 testes passando
+245 testes passando
 ```
 
 ## Integração contínua
