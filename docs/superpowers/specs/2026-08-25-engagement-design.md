@@ -70,7 +70,7 @@ Nullable porque a coluna nasce em uma tabela que já tem registros e a especific
 
 No domínio, o campo entra como último atributo com default `None`: `criado_em` não tem default, e um dataclass não aceita campo sem default depois de um campo com default. O default também preserva as chamadas existentes de `ContentService.create`.
 
-A migration `0004_add_url_publicacao_conteudos` faz `add_column` com `String(500)` nullable; o `downgrade` faz `drop_column`.
+A migration `0004_url_publicacao_conteudos` faz `add_column` com `String(500)` nullable; o `downgrade` faz `drop_column`.
 
 ### Validação
 
@@ -117,7 +117,7 @@ O Marco 0.5 estará concluído quando:
 - alcance zero devolver `null`;
 - nenhuma coluna de engajamento existir no banco;
 - `url_publicacao` existir no domínio, no schema, no model e na tabela, com validação no serviço;
-- a migration terminar em `0004_add_url_publicacao_conteudos`, com `downgrade` funcional;
+- a migration terminar em `0004_url_publicacao_conteudos`, com `downgrade` funcional;
 - os testes anteriores permanecerem verdes.
 
 ## 11. Fora de escopo

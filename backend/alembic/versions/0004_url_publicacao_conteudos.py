@@ -1,7 +1,7 @@
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0004_add_url_publicacao_conteudos"
+revision = "0004_url_publicacao_conteudos"
 down_revision = "0003_create_metricas"
 branch_labels = None
 depends_on = None

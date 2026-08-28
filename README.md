@@ -402,7 +402,7 @@ para garantir a aplicação das Foreign Keys.
 A migration atual mais recente é:
 
 ```text
-0004_add_url_publicacao_conteudos
+0004_url_publicacao_conteudos
 ```
 
 ### Trocando o banco de produção
@@ -553,7 +553,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-245 testes passando
+246 testes passando
 ```
 
 ## Integração contínua
@@ -606,7 +606,7 @@ O RF05 está concluído nas suas duas partes: a disponibilização dos dados em 
 A migration mais recente é:
 
 ```text
-0004_add_url_publicacao_conteudos
+0004_url_publicacao_conteudos
 ```
 
 O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos, registro de medições e painel de análise. Nenhuma operação depende mais de chamar a API diretamente.
