@@ -41,6 +41,9 @@ jobs:
 
       - run: npm ci
 
+      - name: verificar o lint
+        run: npm run lint
+
       - name: verificar os tipos
         run: npx tsc -b
 
@@ -91,3 +94,79 @@ jobs:
           name: relatorio-da-jornada
           path: frontend/playwright-report/
           retention-days: 7
+
+  postgresql:
+    name: PostgreSQL real
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: metricamei_test
+          POSTGRES_USER: metricamei
+          POSTGRES_PASSWORD: metricamei
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U metricamei -d metricamei_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://metricamei:metricamei@localhost:5432/metricamei_test
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: instalar o backend
+        run: python -m pip install -r requirements.txt
+
+      - name: aplicar migrations no PostgreSQL
+        run: python -m alembic upgrade head
+
+      - name: verificar schema no PostgreSQL
+        run: |
+          python - <<'PY'
+          import os
+
+          from sqlalchemy import create_engine, inspect
+
+          engine = create_engine(os.environ["DATABASE_URL"])
+
+          inspector = inspect(engine)
+          tables = set(inspector.get_table_names())
+
+          assert {
+              "usuarios",
+              "conteudos",
+              "metricas",
+          }.issubset(tables)
+
+          content_columns = {
+              column["name"]
+              for column in inspector.get_columns("conteudos")
+          }
+
+          assert "url_publicacao" in content_columns
+
+          metric_columns = {
+              column["name"]
+              for column in inspector.get_columns("metricas")
+          }
+
+          assert "data_referencia" in metric_columns
+
+          print("Schema PostgreSQL validado com sucesso.")
+          PY

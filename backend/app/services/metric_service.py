@@ -7,6 +7,7 @@ from app.repositories.metric_repository import (
     MetricPersistenceConflictError,
     MetricRepository,
 )
+from app.services.business_clock import business_today
 from app.services.engagement import calculate_engagement
 
 
@@ -105,7 +106,7 @@ class MetricService:
                 "anterior à publicação."
             )
 
-        if data_referencia > date.today():
+        if data_referencia > business_today():
             raise InvalidMetricError(
                 "A data de referência não pode estar no futuro."
             )

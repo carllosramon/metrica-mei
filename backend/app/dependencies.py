@@ -108,15 +108,20 @@ def get_content_repository(
     return SQLAlchemyContentRepository(session)
 
 
-def get_content_service(
-    repository=Depends(get_content_repository),
-):
-    return ContentService(repository)
-
 def get_metric_repository(
     session: Session = Depends(get_db_session),
 ):
     return SQLAlchemyMetricRepository(session)
+
+
+def get_content_service(
+    repository=Depends(get_content_repository),
+    metric_repository=Depends(get_metric_repository),
+):
+    return ContentService(
+        repository,
+        metric_repository,
+    )
 
 
 def get_metric_service(

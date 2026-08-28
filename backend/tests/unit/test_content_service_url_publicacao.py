@@ -5,6 +5,9 @@ import pytest
 from app.repositories.in_memory_content_repository import (
     InMemoryContentRepository,
 )
+from app.repositories.in_memory_metric_repository import (
+    InMemoryMetricRepository,
+)
 from app.services.content_service import (
     ContentService,
     InvalidContentError,
@@ -13,7 +16,7 @@ from app.services.content_service import (
 
 def make_service():
     repository = InMemoryContentRepository()
-    return ContentService(repository)
+    return ContentService(repository, InMemoryMetricRepository())
 
 
 def create_content(

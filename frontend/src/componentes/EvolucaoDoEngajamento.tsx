@@ -91,9 +91,12 @@ export function EvolucaoDoEngajamento({ metricas }: Props) {
         ? 0.5
         : (emDias(metrica.data_referencia) - primeiroDia) / intervalo
 
+    const proporcaoVertical =
+      maiorIndice === 0 ? 0 : metrica.engajamento / maiorIndice
+
     return {
       x: ESQUERDA + posicao * (DIREITA - ESQUERDA),
-      y: BASE - (metrica.engajamento / maiorIndice) * (BASE - TOPO),
+      y: BASE - proporcaoVertical * (BASE - TOPO),
     }
   })
 

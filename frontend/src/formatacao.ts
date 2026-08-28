@@ -1,3 +1,5 @@
+const FUSO_DO_NEGOCIO = 'America/Sao_Paulo'
+
 export function formatarNumero(valor: number): string {
   return valor.toLocaleString('pt-BR')
 }
@@ -24,13 +26,19 @@ export function formatarData(isoDaData: string): string {
 }
 
 export function dataDeHoje(): string {
-  // toISOString devolveria a data em UTC, que no fim da tarde do Brasil já
-  // é o dia seguinte — e o formulário passaria a aceitar data futura.
-  const agora = new Date()
+  // O backend usa o calendário de America/Sao_Paulo para decidir se uma
+  // data está no futuro. O formulário precisa usar exatamente o mesmo
+  // calendário, independentemente do fuso do navegador ou do servidor.
+  const partes = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: FUSO_DO_NEGOCIO,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
 
-  const ano = agora.getFullYear()
-  const mes = String(agora.getMonth() + 1).padStart(2, '0')
-  const dia = String(agora.getDate()).padStart(2, '0')
+  const valores = Object.fromEntries(
+    partes.map((parte) => [parte.type, parte.value]),
+  ) as Record<string, string>
 
-  return `${ano}-${mes}-${dia}`
+  return `${valores.year}-${valores.month}-${valores.day}`
 }

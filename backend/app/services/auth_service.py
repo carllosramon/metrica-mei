@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 
 from app.domain.user import User
-from app.repositories.user_repository import UserRepository
+from app.repositories.user_repository import (
+    UserPersistenceConflictError,
+    UserRepository,
+)
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
 
@@ -62,7 +65,10 @@ class AuthService:
             criado_em=datetime.now(timezone.utc),
         )
 
-        return self._repository.create(user)
+        try:
+            return self._repository.create(user)
+        except UserPersistenceConflictError as exc:
+            raise EmailAlreadyRegisteredError from exc
 
     def login(
         self,

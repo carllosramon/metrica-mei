@@ -815,3 +815,52 @@ def test_update_content_keeps_url_when_field_is_absent(
         response.json()["url_publicacao"]
         == "https://instagram.com/p/abc123"
     )
+
+
+
+def test_update_content_rejects_publication_date_after_existing_metric(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    create_response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Conteúdo com histórico",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-20",
+        },
+    )
+
+    assert create_response.status_code == 201
+    content_id = create_response.json()["id"]
+
+    metric_response = client.post(
+        f"/conteudos/{content_id}/metricas",
+        headers=headers,
+        json={
+            "visualizacoes": 100,
+            "curtidas": 10,
+            "comentarios": 2,
+            "compartilhamentos": 1,
+            "alcance": 80,
+            "data_referencia": "2026-08-21",
+        },
+    )
+
+    assert metric_response.status_code == 201
+
+    response = client.patch(
+        f"/conteudos/{content_id}",
+        headers=headers,
+        json={
+            "data_publicacao": "2026-08-22",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados do conteúdo inválidos."
+    }

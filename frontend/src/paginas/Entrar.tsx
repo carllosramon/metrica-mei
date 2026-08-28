@@ -3,12 +3,12 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { ErroDaApi } from '../api/cliente'
-import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { Campo } from '../componentes/Campo'
 import estilos from './Formulario.module.css'
 
 export function Entrar() {
-  const { entrarNaConta, sessaoExpirada } = usarAutenticacao()
+  const { entrarNaConta, sessaoExpirada } = useAutenticacao()
   const navegar = useNavigate()
 
   const [email, definirEmail] = useState('')

@@ -1,6 +1,7 @@
 import pytest
 
 from app.repositories.in_memory_user_repository import InMemoryUserRepository
+from app.repositories.user_repository import UserPersistenceConflictError
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
 from app.services.auth_service import (
@@ -105,4 +106,30 @@ def test_register_rejects_invalid_password(senha):
             "Carlos",
             "carlos@email.com",
             senha,
+        )
+
+
+def test_register_translates_persistence_email_conflict():
+    class ConflictingUserRepository(InMemoryUserRepository):
+        def get_by_email(self, email):
+            return None
+
+        def create(self, user):
+            raise UserPersistenceConflictError
+
+    service = AuthService(
+        ConflictingUserRepository(),
+        PasswordService(),
+        TokenService(
+            TEST_SECRET,
+            "HS256",
+            30,
+        ),
+    )
+
+    with pytest.raises(EmailAlreadyRegisteredError):
+        service.register(
+            "Carlos",
+            "carlos@email.com",
+            "minhasenha",
         )

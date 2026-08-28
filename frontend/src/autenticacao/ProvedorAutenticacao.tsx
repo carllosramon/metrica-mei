@@ -21,7 +21,7 @@ export function ProvedorAutenticacao({ children }: Props) {
     localStorage.getItem(CHAVE_DO_TOKEN),
   )
   const [usuario, definirUsuario] = useState<Usuario | null>(null)
-  const [verificando, definirVerificando] = useState(true)
+  const [verificando, definirVerificando] = useState(() => token !== null)
   const [sessaoExpirada, definirSessaoExpirada] = useState(false)
 
   const encerrarSessao = useCallback(() => {
@@ -47,8 +47,6 @@ export function ProvedorAutenticacao({ children }: Props) {
 
   useEffect(() => {
     if (token === null) {
-      definirUsuario(null)
-      definirVerificando(false)
       return
     }
 

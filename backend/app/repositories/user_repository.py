@@ -3,6 +3,10 @@ from typing import Protocol
 from app.domain.user import User
 
 
+class UserPersistenceConflictError(Exception):
+    pass
+
+
 class UserRepository(Protocol):
     def get_by_email(self, email: str) -> User | None: ...
 

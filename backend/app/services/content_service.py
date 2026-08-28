@@ -3,6 +3,8 @@ from datetime import date, datetime, timezone
 
 from app.domain.content import Content
 from app.repositories.content_repository import ContentRepository
+from app.repositories.metric_repository import MetricRepository
+from app.services.business_clock import business_today
 
 
 _UNSET = object()
@@ -20,8 +22,10 @@ class ContentService:
     def __init__(
         self,
         repository: ContentRepository,
+        metric_repository: MetricRepository,
     ):
         self._repository = repository
+        self._metric_repository = metric_repository
 
     @staticmethod
     def _normalize_text(
@@ -69,7 +73,7 @@ class ContentService:
         if not isinstance(value, date) or isinstance(value, datetime):
             raise InvalidContentError
 
-        if value > date.today():
+        if value > business_today():
             raise InvalidContentError
 
         return value
@@ -154,6 +158,23 @@ class ContentService:
             user_id=user_id,
         )
 
+        normalized_publication_date = (
+            self._validate_publication_date(data_publicacao)
+            if data_publicacao is not _UNSET
+            else content.data_publicacao
+        )
+
+        if data_publicacao is not _UNSET:
+            metrics = self._metric_repository.list_by_content(
+                content_id
+            )
+
+            if any(
+                metric.data_referencia < normalized_publication_date
+                for metric in metrics
+            ):
+                raise InvalidContentError
+
         updated_content = replace(
             content,
             titulo=(
@@ -171,11 +192,7 @@ class ContentService:
                 if tipo is not _UNSET
                 else content.tipo
             ),
-            data_publicacao=(
-                self._validate_publication_date(data_publicacao)
-                if data_publicacao is not _UNSET
-                else content.data_publicacao
-            ),
+            data_publicacao=normalized_publication_date,
             url_publicacao=(
                 self._normalize_url(url_publicacao)
                 if url_publicacao is not _UNSET

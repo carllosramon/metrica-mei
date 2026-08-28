@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { ErroDaApi } from '../api/cliente'
 import { buscarPainel } from '../api/painel'
 import type { Painel as DadosDoPainel } from '../api/tipos'
-import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { BarrasPorPlataforma } from '../componentes/BarrasPorPlataforma'
 import { CartaoIndicador } from '../componentes/CartaoIndicador'
 import {
@@ -14,7 +14,7 @@ import {
 import estilos from './Painel.module.css'
 
 export function Painel() {
-  const { token, usuario } = usarAutenticacao()
+  const { token, usuario } = useAutenticacao()
 
   const [dados, definirDados] = useState<DadosDoPainel | null>(null)
   const [erro, definirErro] = useState<string | null>(null)

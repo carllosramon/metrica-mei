@@ -898,3 +898,44 @@ def test_create_translates_persistence_conflict():
     assert str(exc_info.value) == (
         "Já existe uma métrica para este conteúdo nesta data."
     )
+
+
+def test_create_metric_uses_business_calendar_day(monkeypatch):
+    content_repository = InMemoryContentRepository()
+    metric_repository = InMemoryMetricRepository()
+
+    content = content_repository.create(
+        Content(
+            id=None,
+            usuario_id=1,
+            titulo="Post sobre métricas",
+            plataforma="Instagram",
+            tipo="Carrossel",
+            data_publicacao=date(2026, 8, 27),
+            criado_em=datetime.now(timezone.utc),
+        )
+    )
+
+    service = MetricService(
+        content_repository=content_repository,
+        metric_repository=metric_repository,
+    )
+
+    monkeypatch.setattr(
+        "app.services.metric_service.business_today",
+        lambda: date(2026, 8, 27),
+    )
+
+    with pytest.raises(Exception) as exc_info:
+        service.create(
+            user_id=1,
+            content_id=content.id,
+            visualizacoes=100,
+            curtidas=10,
+            comentarios=2,
+            compartilhamentos=3,
+            alcance=80,
+            data_referencia=date(2026, 8, 28),
+        )
+
+    assert exc_info.type.__name__ == "InvalidMetricError"

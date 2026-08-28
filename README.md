@@ -67,11 +67,12 @@ O projeto utiliza tanto Repositories em memória, principalmente nos testes unit
 
 Atualmente são utilizados:
 
-- SQLite no desenvolvimento local e nos testes;
+- SQLite no desenvolvimento local e na suíte principal de testes;
+- PostgreSQL 16 na integração contínua para validar as migrations e o schema;
 - SQLAlchemy como camada de acesso aos dados;
 - Alembic para versionamento do schema.
 
-A arquitetura foi projetada para permitir a utilização de PostgreSQL sem alterar as regras de negócio da aplicação.
+A arquitetura permite utilizar PostgreSQL sem alterar as regras de negócio da aplicação. A cadeia completa de migrations é validada automaticamente em uma instância PostgreSQL real na integração contínua.
 
 ### Frontend
 
@@ -336,7 +337,7 @@ npm test
 ```
 
 ```text
-42 testes passando
+43 testes passando
 ```
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
@@ -402,7 +403,7 @@ para garantir a aplicação das Foreign Keys.
 A migration atual mais recente é:
 
 ```text
-0004_add_url_publicacao_conteudos
+0004_url_publicacao_conteudos
 ```
 
 ### Trocando o banco de produção
@@ -421,10 +422,14 @@ com os contratos de repositório, as migrations usam apenas tipos portáveis, e 
 que é específico do SQLite — `check_same_thread` e o `PRAGMA foreign_keys` —
 está isolado em `create_engine_from_url`, condicionado ao prefixo da URL.
 
-> **Ainda não executado contra um PostgreSQL real.** O driver está declarado e o
-> comportamento do engine é verificado por teste, mas as migrations foram
-> aplicadas apenas em SQLite. Rodar `alembic upgrade head` contra uma instância
-> PostgreSQL é o passo que falta para a troca estar comprovada.
+A integração contínua executa `alembic upgrade head` em uma instância
+PostgreSQL 16 criada para o job e verifica o schema resultante. Essa validação
+comprova a portabilidade da cadeia de migrations e a existência das tabelas e
+colunas esperadas no PostgreSQL.
+
+A suíte principal de integração da aplicação continua utilizando SQLite. Uma
+validação futura pode ampliar o job PostgreSQL para também executar operações
+de aplicação e persistência, além da criação e inspeção do schema.
 
 ## Configuração do ambiente
 
@@ -553,15 +558,16 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-237 testes passando
+246 testes passando
 ```
 
 ## Integração contínua
 
-Cada push e cada pull request disparam a suíte inteira em três trabalhos
-paralelos: backend, frontend e a jornada de ponta a ponta. Quando a jornada
-falha, o relatório do navegador fica anexado à execução, mostrando em que passo
-ela parou.
+Cada push e cada pull request disparam quatro trabalhos paralelos: backend,
+frontend, jornada de ponta a ponta e validação em PostgreSQL 16. O job de
+PostgreSQL aplica todas as migrations e inspeciona o schema criado. Quando a
+jornada de navegador falha, o relatório fica anexado à execução, mostrando em
+que passo ela parou.
 
 A configuração está em `.github/workflows/testes.yml`.
 
@@ -606,7 +612,7 @@ O RF05 está concluído nas suas duas partes: a disponibilização dos dados em 
 A migration mais recente é:
 
 ```text
-0004_add_url_publicacao_conteudos
+0004_url_publicacao_conteudos
 ```
 
 O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos, registro de medições e painel de análise. Nenhuma operação depende mais de chamar a API diretamente.
@@ -616,7 +622,7 @@ O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos
 As próximas etapas planejadas são:
 
 1. avaliar a qualidade em uso com usuários, conforme a ISO/IEC 25010;
-2. executar as migrations contra uma instância PostgreSQL real;
+2. ampliar a validação de persistência da aplicação em PostgreSQL;
 3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento

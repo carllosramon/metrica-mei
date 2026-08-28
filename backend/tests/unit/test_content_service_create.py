@@ -5,6 +5,9 @@ import pytest
 from app.repositories.in_memory_content_repository import (
     InMemoryContentRepository,
 )
+from app.repositories.in_memory_metric_repository import (
+    InMemoryMetricRepository,
+)
 from app.services.content_service import (
     ContentService,
     InvalidContentError,
@@ -13,7 +16,7 @@ from app.services.content_service import (
 
 def make_service():
     repository = InMemoryContentRepository()
-    service = ContentService(repository)
+    service = ContentService(repository, InMemoryMetricRepository())
 
     return service, repository
 
@@ -158,4 +161,22 @@ def test_create_rejects_datetime_as_publication_date():
             plataforma="Instagram",
             tipo="Reels",
             data_publicacao=datetime.now(),
+        )
+
+
+def test_create_uses_business_calendar_day(monkeypatch):
+    service, _ = make_service()
+
+    monkeypatch.setattr(
+        "app.services.content_service.business_today",
+        lambda: date(2026, 8, 27),
+    )
+
+    with pytest.raises(InvalidContentError):
+        service.create(
+            user_id=1,
+            titulo="Conteúdo de amanhã",
+            plataforma="Instagram",
+            tipo="Reels",
+            data_publicacao=date(2026, 8, 28),
         )

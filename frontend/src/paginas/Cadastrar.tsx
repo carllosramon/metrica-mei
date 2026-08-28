@@ -3,14 +3,14 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { ErroDaApi } from '../api/cliente'
-import { usarAutenticacao } from '../autenticacao/usarAutenticacao'
+import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { Campo } from '../componentes/Campo'
 import estilos from './Formulario.module.css'
 
 const TAMANHO_MINIMO_DA_SENHA = 8
 
 export function Cadastrar() {
-  const { criarConta } = usarAutenticacao()
+  const { criarConta } = useAutenticacao()
   const navegar = useNavigate()
 
   const [nome, definirNome] = useState('')
