@@ -162,3 +162,21 @@ def test_create_rejects_datetime_as_publication_date():
             tipo="Reels",
             data_publicacao=datetime.now(),
         )
+
+
+def test_create_uses_business_calendar_day(monkeypatch):
+    service, _ = make_service()
+
+    monkeypatch.setattr(
+        "app.services.content_service.business_today",
+        lambda: date(2026, 8, 27),
+    )
+
+    with pytest.raises(InvalidContentError):
+        service.create(
+            user_id=1,
+            titulo="Conteúdo de amanhã",
+            plataforma="Instagram",
+            tipo="Reels",
+            data_publicacao=date(2026, 8, 28),
+        )

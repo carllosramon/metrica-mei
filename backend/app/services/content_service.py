@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from app.domain.content import Content
 from app.repositories.content_repository import ContentRepository
 from app.repositories.metric_repository import MetricRepository
+from app.services.business_clock import business_today
 
 
 _UNSET = object()
@@ -72,7 +73,7 @@ class ContentService:
         if not isinstance(value, date) or isinstance(value, datetime):
             raise InvalidContentError
 
-        if value > date.today():
+        if value > business_today():
             raise InvalidContentError
 
         return value
