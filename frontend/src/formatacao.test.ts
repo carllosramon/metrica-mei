@@ -44,13 +44,14 @@ describe('formatarData', () => {
 })
 
 describe('dataDeHoje', () => {
-  it('usa o calendário local, e não o UTC', () => {
-    // Fim da tarde no Brasil já é o dia seguinte em UTC, e o formulário
-    // passaria a aceitar data futura se usasse toISOString.
+  it('usa o calendário brasileiro quando o UTC já virou o dia', () => {
+    // Às 00:30 UTC do dia 28 ainda são 21:30 do dia 27 em São Paulo.
+    // O navegador pode estar em UTC, mas o formulário precisa concordar
+    // com o calendário de negócio usado pelo backend.
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-08-25T23:30:00-03:00'))
+    vi.setSystemTime(new Date('2026-08-28T00:30:00Z'))
 
-    expect(dataDeHoje()).toBe('2026-08-25')
+    expect(dataDeHoje()).toBe('2026-08-27')
 
     vi.useRealTimers()
   })
