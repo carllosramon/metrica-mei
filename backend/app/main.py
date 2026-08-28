@@ -70,7 +70,7 @@ _GRUPOS = [
 
 app = FastAPI(
     title="MetricaMEI API",
-    version="0.7.0",
+    version="0.11.0",
     description=_DESCRICAO,
     openapi_tags=_GRUPOS,
 )

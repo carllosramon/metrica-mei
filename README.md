@@ -336,7 +336,7 @@ npm test
 ```
 
 ```text
-42 testes passando
+43 testes passando
 ```
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
@@ -553,7 +553,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-237 testes passando
+243 testes passando
 ```
 
 ## Integração contínua
