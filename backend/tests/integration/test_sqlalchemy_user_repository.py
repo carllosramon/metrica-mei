@@ -2,27 +2,12 @@ from datetime import datetime, timezone
 
 import pytest
 
-from app.database import models  # noqa: F401
-from app.database.connection import (
-    Base,
-    create_engine_from_url,
-    create_session_factory,
-)
 from app.domain.user import User
 from app.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from app.repositories.user_repository import UserPersistenceConflictError
 
 
-def test_sqlalchemy_repository_persists_and_reads_user(tmp_path):
-    database_path = tmp_path / "repository.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
+def test_sqlalchemy_repository_persists_and_reads_user(session_factory):
     with session_factory() as session:
         repository = SQLAlchemyUserRepository(session)
 
@@ -48,17 +33,8 @@ def test_sqlalchemy_repository_persists_and_reads_user(tmp_path):
 
 
 def test_sqlalchemy_repository_translates_duplicate_email_and_rolls_back(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "repository-conflict.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         repository = SQLAlchemyUserRepository(session)
 

@@ -5,12 +5,6 @@ import importlib.util
 
 import pytest
 
-from app.database import models  # noqa: F401
-from app.database.connection import (
-    Base,
-    create_engine_from_url,
-    create_session_factory,
-)
 from app.database.models import (
     ContentModel,
     UserModel,
@@ -47,17 +41,8 @@ def get_repository_class():
 
 
 def test_sqlalchemy_metric_repository_persists_and_reads_metric(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -117,17 +102,8 @@ def test_sqlalchemy_metric_repository_persists_and_reads_metric(
     assert loaded.data_referencia == date.today()
 
 def test_sqlalchemy_metric_repository_lists_content_metrics_in_expected_order(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_list.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -221,17 +197,8 @@ def test_sqlalchemy_metric_repository_lists_content_metrics_in_expected_order(
     ]
 
 def test_sqlalchemy_metric_repository_gets_metric_by_content_and_reference_date(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_reference_date.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -319,17 +286,8 @@ def test_sqlalchemy_metric_repository_gets_metric_by_content_and_reference_date(
     assert loaded.data_referencia == reference_date
 
 def test_sqlalchemy_metric_repository_persists_update(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_update.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -413,17 +371,8 @@ def test_sqlalchemy_metric_repository_persists_update(
     )
 
 def test_sqlalchemy_metric_repository_deletes_metric(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_delete.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -476,17 +425,8 @@ def test_sqlalchemy_metric_repository_deletes_metric(
     assert loaded is None
 
 def test_sqlalchemy_metric_repository_translates_create_unique_conflict(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_create_conflict.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -555,17 +495,8 @@ def test_sqlalchemy_metric_repository_translates_create_unique_conflict(
     assert loaded.id == first.id
 
 def test_sqlalchemy_metric_repository_translates_create_unique_conflict(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_create_conflict.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -634,17 +565,8 @@ def test_sqlalchemy_metric_repository_translates_create_unique_conflict(
     assert loaded.id == first.id
 
 def test_sqlalchemy_metric_repository_translates_update_unique_conflict(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "metric_repository_update_conflict.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",

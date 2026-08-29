@@ -3,12 +3,6 @@ from datetime import date, datetime, timedelta, timezone
 import importlib
 import importlib.util
 
-from app.database import models  # noqa: F401
-from app.database.connection import (
-    Base,
-    create_engine_from_url,
-    create_session_factory,
-)
 from app.database.models import UserModel
 from app.domain.content import Content
 
@@ -36,17 +30,8 @@ def get_repository_class():
 
 
 def test_sqlalchemy_content_repository_persists_and_reads_content(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "content_repository.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -90,17 +75,8 @@ def test_sqlalchemy_content_repository_persists_and_reads_content(
 
 
 def test_sqlalchemy_content_repository_lists_only_user_contents_in_expected_order(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "content_repository_list.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -185,17 +161,8 @@ def test_sqlalchemy_content_repository_lists_only_user_contents_in_expected_orde
 
 
 def test_sqlalchemy_content_repository_persists_update(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "content_repository_update.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
@@ -248,17 +215,8 @@ def test_sqlalchemy_content_repository_persists_update(
 
 
 def test_sqlalchemy_content_repository_deletes_content(
-    tmp_path,
+    session_factory,
 ):
-    database_path = tmp_path / "content_repository_delete.db"
-
-    engine = create_engine_from_url(
-        f"sqlite:///{database_path}"
-    )
-
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
-
     with session_factory() as session:
         owner = UserModel(
             nome="Carlos",
