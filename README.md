@@ -423,13 +423,37 @@ que é específico do SQLite — `check_same_thread` e o `PRAGMA foreign_keys` �
 está isolado em `create_engine_from_url`, condicionado ao prefixo da URL.
 
 A integração contínua executa `alembic upgrade head` em uma instância
-PostgreSQL 16 criada para o job e verifica o schema resultante. Essa validação
-comprova a portabilidade da cadeia de migrations e a existência das tabelas e
-colunas esperadas no PostgreSQL.
+PostgreSQL 16 criada para o job, verifica o schema resultante e **roda a suíte
+de testes contra esse mesmo banco**. Assim as consultas reais da aplicação — as
+do painel, as de unicidade e as de ownership — são exercitadas no banco de
+produção previsto, e não apenas em SQLite.
 
-A suíte principal de integração da aplicação continua utilizando SQLite. Uma
-validação futura pode ampliar o job PostgreSQL para também executar operações
-de aplicação e persistência, além da criação e inspeção do schema.
+Isso importa porque o SQLite é permissivo onde o PostgreSQL não é. O revision
+id da migration `0004` passou três marcos com 33 caracteres, acima do limite de
+32 da coluna de versão do Alembic: o SQLite não valida tamanho de `VARCHAR` e
+aceitou; o PostgreSQL recusou assim que foi executado de verdade.
+
+### Rodando a suíte contra um PostgreSQL local
+
+Sem configuração, cada teste usa o próprio arquivo SQLite temporário. Para
+apontar a suíte para um PostgreSQL, crie uma vez o papel e o banco:
+
+```sql
+CREATE ROLE metricamei LOGIN PASSWORD 'metricamei';
+CREATE DATABASE metricamei_test OWNER metricamei;
+```
+
+E execute com a variável apontando para ele:
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql+psycopg://metricamei:metricamei@localhost:5432/metricamei_test"
+python -m pytest
+```
+
+O banco é compartilhado por todos os testes, então o schema é derrubado e
+recriado a cada um. Os testes que verificam comportamento específico do SQLite
+e os da cadeia de migrations continuam em SQLite, porque é isso que eles
+verificam.
 
 ## Configuração do ambiente
 
@@ -622,7 +646,7 @@ O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos
 As próximas etapas planejadas são:
 
 1. avaliar a qualidade em uso com usuários, conforme a ISO/IEC 25010;
-2. ampliar a validação de persistência da aplicação em PostgreSQL;
+2. executar a jornada de ponta a ponta também contra o PostgreSQL;
 3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
