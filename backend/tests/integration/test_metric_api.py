@@ -635,3 +635,154 @@ def test_delete_missing_metric_returns_404(
     assert response.json() == {
         "detail": "Métrica não encontrada."
     }
+
+
+def owner_and_intruder(client):
+    """Dois usuários: o dono do conteúdo e alguém tentando alcançá-lo."""
+    owner = authenticated_headers(client)
+
+    intruder = authenticated_headers(
+        client,
+        name="Intruso",
+        email="intruso@email.com",
+    )
+
+    return owner, intruder
+
+
+def assert_content_is_hidden(response):
+    assert response.status_code == 404
+
+    # A resposta é idêntica à de conteúdo inexistente: confirmar que o
+    # registro existe mas é de outra conta já revelaria dado alheio.
+    assert response.json() == {
+        "detail": "Conteúdo não encontrado."
+    }
+
+
+def test_create_metric_on_other_users_content_returns_404(
+    client,
+):
+    owner, intruder = owner_and_intruder(client)
+    content = create_content(client, owner)
+
+    response = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=intruder,
+        json=metric_payload(),
+    )
+
+    assert_content_is_hidden(response)
+
+
+def test_list_metrics_of_other_users_content_returns_404(
+    client,
+):
+    owner, intruder = owner_and_intruder(client)
+    content = create_content(client, owner)
+
+    create_metric(client, owner, content["id"])
+
+    response = client.get(
+        f"/conteudos/{content['id']}/metricas",
+        headers=intruder,
+    )
+
+    assert_content_is_hidden(response)
+
+
+def test_update_metric_of_other_users_content_returns_404(
+    client,
+):
+    owner, intruder = owner_and_intruder(client)
+    content = create_content(client, owner)
+
+    metric = create_metric(client, owner, content["id"])
+
+    response = client.patch(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=intruder,
+        json={"alcance": 999},
+    )
+
+    assert_content_is_hidden(response)
+
+    permanece = client.get(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=owner,
+    )
+
+    assert permanece.status_code == 200
+    assert permanece.json()["alcance"] == metric["alcance"]
+
+
+def test_update_missing_metric_returns_404(
+    client,
+):
+    headers = authenticated_headers(client)
+    content = create_content(client, headers)
+
+    response = client.patch(
+        f"/conteudos/{content['id']}/metricas/999999",
+        headers=headers,
+        json={"alcance": 999},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Métrica não encontrada."
+    }
+
+
+def test_delete_metric_of_other_users_content_returns_404(
+    client,
+):
+    owner, intruder = owner_and_intruder(client)
+    content = create_content(client, owner)
+
+    metric = create_metric(client, owner, content["id"])
+
+    response = client.delete(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=intruder,
+    )
+
+    assert_content_is_hidden(response)
+
+    permanece = client.get(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=owner,
+    )
+
+    assert permanece.status_code == 200
+
+
+def test_get_metric_of_other_users_content_returns_404(
+    client,
+):
+    owner, intruder = owner_and_intruder(client)
+    content = create_content(client, owner)
+
+    metric = create_metric(client, owner, content["id"])
+
+    response = client.get(
+        (
+            f"/conteudos/{content['id']}"
+            f"/metricas/{metric['id']}"
+        ),
+        headers=intruder,
+    )
+
+    assert_content_is_hidden(response)
