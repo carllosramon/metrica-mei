@@ -76,37 +76,60 @@ export function ConteudoDetalhe() {
     number | null
   >(null)
 
-  const carregar = useCallback(async () => {
-    if (token === null) {
-      return
-    }
-
-    try {
-      const encontrado = await buscarConteudo(token, identificador)
-
-      definirConteudo(encontrado)
-      definirDadosDoConteudo({
-        titulo: encontrado.titulo,
-        plataforma: encontrado.plataforma,
-        tipo: encontrado.tipo,
-        data_publicacao: encontrado.data_publicacao,
-        url_publicacao: encontrado.url_publicacao ?? '',
-      })
-      definirMetricas(await listarMetricas(token, identificador))
-    } catch (falha) {
-      // Conteúdo inexistente ou de outro usuário não tem tela própria: a
-      // lista é o único lugar coerente para devolver o usuário.
-      if (falha instanceof ErroDaApi && falha.status === 404) {
-        navegar('/conteudos', { replace: true })
+  const carregar = useCallback(
+    async (aindaVale: () => boolean = () => true) => {
+      if (token === null) {
         return
       }
 
-      definirErro(mensagemDe(falha, 'Não foi possível carregar o conteúdo.'))
-    }
-  }, [token, identificador, navegar])
+      try {
+        const encontrado = await buscarConteudo(token, identificador)
+        const medicoes = await listarMetricas(token, identificador)
+
+        if (!aindaVale()) {
+          return
+        }
+
+        definirConteudo(encontrado)
+        definirDadosDoConteudo({
+          titulo: encontrado.titulo,
+          plataforma: encontrado.plataforma,
+          tipo: encontrado.tipo,
+          data_publicacao: encontrado.data_publicacao,
+          url_publicacao: encontrado.url_publicacao ?? '',
+        })
+        definirMetricas(medicoes)
+      } catch (falha) {
+        if (!aindaVale()) {
+          return
+        }
+
+        // Conteúdo inexistente ou de outro usuário não tem tela própria:
+        // a lista é o único lugar coerente para devolver o usuário.
+        if (falha instanceof ErroDaApi && falha.status === 404) {
+          navegar('/conteudos', { replace: true })
+          return
+        }
+
+        definirErro(
+          mensagemDe(falha, 'Não foi possível carregar o conteúdo.'),
+        )
+      }
+    },
+    [token, identificador, navegar],
+  )
 
   useEffect(() => {
-    void carregar()
+    // Navegar depressa dispara o efeito de novo antes de a primeira
+    // resposta chegar. Sem descartar a anterior, ela chegaria depois e
+    // sobrescreveria a tela com dados que já não são os pedidos.
+    let descartado = false
+
+    void carregar(() => !descartado)
+
+    return () => {
+      descartado = true
+    }
   }, [carregar])
 
   async function salvarConteudo(evento: FormEvent) {

@@ -27,24 +27,44 @@ export function Conteudos() {
   const [formulario, definirFormulario] = useState(FORMULARIO_VAZIO)
   const [enviando, definirEnviando] = useState(false)
 
-  const carregar = useCallback(async () => {
-    if (token === null) {
-      return
-    }
+  const carregar = useCallback(
+    async (aindaVale: () => boolean = () => true) => {
+      if (token === null) {
+        return
+      }
 
-    try {
-      definirConteudos(await listarConteudos(token))
-    } catch (falha) {
-      definirErro(
-        falha instanceof ErroDaApi
-          ? falha.message
-          : 'Não foi possível carregar os conteúdos.',
-      )
-    }
-  }, [token])
+      try {
+        const encontrados = await listarConteudos(token)
+
+        if (aindaVale()) {
+          definirConteudos(encontrados)
+        }
+      } catch (falha) {
+        if (!aindaVale()) {
+          return
+        }
+
+        definirErro(
+          falha instanceof ErroDaApi
+            ? falha.message
+            : 'Não foi possível carregar os conteúdos.',
+        )
+      }
+    },
+    [token],
+  )
 
   useEffect(() => {
-    void carregar()
+    // Navegar depressa dispara o efeito de novo antes de a primeira
+    // resposta chegar. Sem descartar a anterior, ela chegaria depois e
+    // sobrescreveria a tela com dados que já não são os pedidos.
+    let descartado = false
+
+    void carregar(() => !descartado)
+
+    return () => {
+      descartado = true
+    }
   }, [carregar])
 
   function alterar(campo: keyof typeof FORMULARIO_VAZIO, valor: string) {

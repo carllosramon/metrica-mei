@@ -1,6 +1,11 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useNavigate,
+} from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ErroDaApi } from '../api/cliente'
@@ -162,5 +167,74 @@ describe('ConteudoDetalhe', () => {
     expect(
       screen.getByRole('button', { name: 'Confirmar exclusão' }),
     ).toBeInTheDocument()
+  })
+})
+
+type Adiado<T> = {
+  promessa: Promise<T>
+  resolver: (valor: T) => void
+}
+
+function adiar<T>(): Adiado<T> {
+  let resolver: (valor: T) => void = () => {}
+
+  const promessa = new Promise<T>((cumprir) => {
+    resolver = cumprir
+  })
+
+  return { promessa, resolver }
+}
+
+function AtalhoParaOutroConteudo() {
+  const navegar = useNavigate()
+
+  return (
+    <button type="button" onClick={() => navegar('/conteudos/8')}>
+      ir para o outro
+    </button>
+  )
+}
+
+describe('ConteudoDetalhe — resposta obsoleta', () => {
+  it('ignora a resposta do conteúdo que o usuário já deixou', async () => {
+    const usuario = userEvent.setup()
+
+    const primeiro = adiar<Conteudo>()
+    const segundo = adiar<Conteudo>()
+
+    vi.mocked(buscarConteudo)
+      .mockReturnValueOnce(primeiro.promessa)
+      .mockReturnValueOnce(segundo.promessa)
+
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    render(
+      <ContextoAutenticacao.Provider value={autenticacao}>
+        <MemoryRouter initialEntries={['/conteudos/7']}>
+          <AtalhoParaOutroConteudo />
+          <Routes>
+            <Route
+              path="/conteudos/:conteudoId"
+              element={<ConteudoDetalhe />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ContextoAutenticacao.Provider>,
+    )
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'ir para o outro' }),
+    )
+
+    // O segundo pedido responde primeiro; o primeiro chega atrasado, como
+    // acontece quando a rede entrega fora de ordem.
+    segundo.resolver({ ...conteudo, id: 8, titulo: 'Carrossel de dicas' })
+    primeiro.resolver({ ...conteudo, id: 7, titulo: 'Reels sobre preço' })
+
+    expect(
+      await screen.findByRole('heading', { name: 'Carrossel de dicas' }),
+    ).toBeInTheDocument()
+
+    expect(screen.queryByText('Reels sobre preço')).toBeNull()
   })
 })
