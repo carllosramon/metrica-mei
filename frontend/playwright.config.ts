@@ -4,6 +4,12 @@ import { defineConfig, devices } from '@playwright/test'
 // Windows costuma expor apenas o lançador `py`.
 const PYTHON = process.env.PYTHON_BIN ?? 'python'
 
+// O SQLite é o padrão de quem roda na própria máquina. Apontando a
+// variável, a jornada exercita o banco de produção previsto — é assim
+// que a integração contínua a executa contra o PostgreSQL.
+const BANCO_DA_JORNADA =
+  process.env.DATABASE_URL ?? 'sqlite:///./data/e2e.db'
+
 const PORTA_DA_API = 8000
 const PORTA_DA_INTERFACE = 4173
 
@@ -31,7 +37,7 @@ export default defineConfig({
       command: `${PYTHON} -m alembic upgrade head && ${PYTHON} -m uvicorn app.main:app --port ${PORTA_DA_API}`,
       cwd: '../backend',
       env: {
-        DATABASE_URL: 'sqlite:///./data/e2e.db',
+        DATABASE_URL: BANCO_DA_JORNADA,
         JWT_SECRET: 'segredo-de-teste-com-mais-de-32-caracteres',
         CORS_ORIGINS: `http://localhost:${PORTA_DA_INTERFACE}`,
       },

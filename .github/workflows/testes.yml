@@ -54,6 +54,27 @@ jobs:
   jornada:
     name: jornada de ponta a ponta
     runs-on: ubuntu-latest
+
+    # A jornada é o último caminho da aplicação a tocar o banco: roda
+    # contra o PostgreSQL para exercitar o de produção, e não o SQLite.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: metricamei_jornada
+          POSTGRES_USER: metricamei
+          POSTGRES_PASSWORD: metricamei
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U metricamei -d metricamei_jornada"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://metricamei:metricamei@localhost:5432/metricamei_jornada
+
     steps:
       - uses: actions/checkout@v4
 
