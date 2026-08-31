@@ -337,7 +337,7 @@ npm test
 ```
 
 ```text
-43 testes passando
+44 testes passando
 ```
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
@@ -421,6 +421,10 @@ Nenhuma regra de negócio precisa mudar, conforme o RNF05: os Services conversam
 com os contratos de repositório, as migrations usam apenas tipos portáveis, e o
 que é específico do SQLite — `check_same_thread` e o `PRAGMA foreign_keys` —
 está isolado em `create_engine_from_url`, condicionado ao prefixo da URL.
+
+A jornada de ponta a ponta também roda contra o PostgreSQL na integração
+contínua, com o backend apontado para o serviço do job. Localmente ela
+continua usando SQLite, salvo se `DATABASE_URL` disser o contrário.
 
 A integração contínua executa `alembic upgrade head` em uma instância
 PostgreSQL 16 criada para o job, verifica o schema resultante e **roda a suíte
@@ -582,7 +586,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-246 testes passando
+254 testes passando
 ```
 
 ## Integração contínua
@@ -646,7 +650,7 @@ O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos
 As próximas etapas planejadas são:
 
 1. avaliar a qualidade em uso com usuários, conforme a ISO/IEC 25010;
-2. executar a jornada de ponta a ponta também contra o PostgreSQL;
+2. ampliar a cobertura da jornada para os fluxos de correção e exclusão;
 3. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
