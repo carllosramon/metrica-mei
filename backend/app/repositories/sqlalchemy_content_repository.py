@@ -81,7 +81,7 @@ class SQLAlchemyContentRepository:
     def update(
         self,
         content: Content,
-    ) -> Content:
+    ) -> Content | None:
         statement = select(ContentModel).where(
             ContentModel.id == content.id,
             ContentModel.usuario_id == content.usuario_id,
@@ -90,7 +90,7 @@ class SQLAlchemyContentRepository:
         model = self._session.scalar(statement)
 
         if model is None:
-            return content
+            return None
 
         model.titulo = content.titulo
         model.plataforma = content.plataforma

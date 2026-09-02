@@ -53,8 +53,14 @@ class InMemoryContentRepository:
 
         return content
 
-    def update(self, content: Content) -> Content:
+    def update(self, content: Content) -> Content | None:
+        # Conteúdo excluído não volta por uma atualização: sem esta
+        # verificação, gravar abaixo o recriaria.
+        if content.id not in self._contents:
+            return None
+
         self._contents[content.id] = content
+
         return content
 
     def delete(self, content: Content) -> None:

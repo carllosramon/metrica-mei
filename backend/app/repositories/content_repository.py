@@ -17,7 +17,13 @@ class ContentRepository(Protocol):
     ) -> Content | None:
         ...
 
-    def update(self, content: Content) -> Content:
+    def update(self, content: Content) -> Content | None:
+        """Grava o conteúdo e devolve o que ficou persistido.
+
+        Devolve None quando o conteúdo não existe mais: outra
+        requisição pode tê-lo excluído entre a leitura do serviço
+        e esta gravação.
+        """
         ...
 
     def delete(self, content: Content) -> None:

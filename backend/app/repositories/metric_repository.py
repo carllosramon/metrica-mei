@@ -38,7 +38,12 @@ class MetricRepository(Protocol):
     def update(
         self,
         metric: Metric,
-    ) -> Metric:
+    ) -> Metric | None:
+        """Grava a métrica e devolve o que ficou persistido.
+
+        Devolve None quando a métrica não existe mais: outra requisição
+        pode tê-la excluído entre a leitura do serviço e esta gravação.
+        """
         ...
 
     def delete(

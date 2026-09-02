@@ -81,7 +81,12 @@ class InMemoryMetricRepository:
     def update(
         self,
         metric: Metric,
-    ) -> Metric:
+    ) -> Metric | None:
+        # Métrica excluída não volta por uma atualização: sem esta
+        # verificação, gravar abaixo a recriaria.
+        if metric.id not in self._metrics:
+            return None
+
         existing = self.get_by_content_and_reference_date(
             metric.conteudo_id,
             metric.data_referencia,
@@ -93,8 +98,7 @@ class InMemoryMetricRepository:
         ):
             raise MetricPersistenceConflictError
 
-        if metric.id is not None:
-            self._metrics[metric.id] = metric
+        self._metrics[metric.id] = metric
 
         return metric
 

@@ -115,7 +115,7 @@ class SQLAlchemyMetricRepository:
     def update(
         self,
         metric: Metric,
-    ) -> Metric:
+    ) -> Metric | None:
         statement = select(MetricModel).where(
             MetricModel.id == metric.id,
             MetricModel.conteudo_id == metric.conteudo_id,
@@ -124,7 +124,7 @@ class SQLAlchemyMetricRepository:
         model = self._session.scalar(statement)
 
         if model is None:
-            return metric
+            return None
 
         model.visualizacoes = metric.visualizacoes
         model.curtidas = metric.curtidas

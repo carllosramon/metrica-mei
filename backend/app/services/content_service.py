@@ -200,7 +200,15 @@ class ContentService:
             ),
         )
 
-        return self._repository.update(updated_content)
+        persistido = self._repository.update(updated_content)
+
+        # O conteúdo pode ter sido excluído entre a leitura acima e
+        # esta gravação. Devolver os valores enviados diria ao
+        # usuário que a edição valeu, e ela não valeu.
+        if persistido is None:
+            raise ContentNotFoundError
+
+        return persistido
 
     def delete(
         self,

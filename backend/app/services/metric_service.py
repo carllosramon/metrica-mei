@@ -346,6 +346,14 @@ class MetricService:
                 "conteúdo nesta data."
             ) from exc
 
+        # A métrica pode ter sido excluída entre a leitura acima e
+        # esta gravação. Devolver os valores enviados diria ao
+        # usuário que a correção valeu, e ela não valeu.
+        if persisted is None:
+            raise MetricNotFoundError(
+                "Métrica não encontrada."
+            )
+
         return self._with_engagement(persisted)
 
     def delete(
