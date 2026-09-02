@@ -128,6 +128,62 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
 
     await expect(page.getByText('10,07%').first()).toBeVisible()
   })
+
+  await test.step('corrigir uma medição recalcula o índice', async () => {
+    await page.getByRole('link', { name: 'Conteúdos' }).click()
+    await page.getByRole('link', { name: 'Reels sobre precificação' }).click()
+
+    // Escopado na tabela: fora dela existe 'Excluir conteúdo', que o
+    // casamento por trecho de nome também alcançaria.
+    const medicoes = page.getByRole('table')
+
+    await medicoes.getByRole('button', { name: 'Editar' }).click()
+
+    await page.getByLabel('Alcance').fill('1000')
+    await page.getByRole('button', { name: 'Salvar medição' }).click()
+
+    // As mesmas 146 interações sobre um alcance menor: 146 / 1000 x 100.
+    await expect(page.getByRole('cell', { name: '14,60%' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: '10,07%' })).toBeHidden()
+  })
+
+  await test.step('excluir uma medição exige confirmação', async () => {
+    const linha = page.getByRole('table')
+
+    await linha.getByRole('button', { name: 'Excluir' }).click()
+
+    // O primeiro clique só arma: é a única proteção contra engano.
+    await expect(
+      linha.getByRole('button', { name: 'Confirmar' }),
+    ).toBeVisible()
+
+    await linha.getByRole('button', { name: 'Confirmar' }).click()
+
+    await expect(
+      page.getByText('Nenhuma medição registrada.', { exact: false }),
+    ).toBeVisible()
+  })
+
+  await test.step('excluir o conteúdo devolve para a lista', async () => {
+    await page.getByRole('button', { name: 'Excluir conteúdo' }).click()
+
+    await page
+      .getByRole('button', { name: 'Confirmar exclusão' })
+      .click()
+
+    await expect(
+      page.getByRole('heading', { name: 'Meus conteúdos' }),
+    ).toBeVisible()
+
+    await expect(
+      page.getByRole('link', { name: 'Reels sobre precificação' }),
+    ).toBeHidden()
+
+    // O outro conteúdo permanece: a exclusão atingiu só o que foi pedido.
+    await expect(
+      page.getByRole('link', { name: 'Story sem alcance medido' }),
+    ).toBeVisible()
+  })
 })
 
 test('rota protegida manda quem não tem sessão para o login', async ({
