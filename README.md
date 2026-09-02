@@ -586,7 +586,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-254 testes passando
+262 testes passando
 ```
 
 ## Integração contínua
@@ -650,8 +650,7 @@ O frontend cobre todo o fluxo do sistema: cadastro, login, gestão de conteúdos
 As próximas etapas planejadas são:
 
 1. avaliar a qualidade em uso com usuários, conforme a ISO/IEC 25010;
-2. ampliar a cobertura da jornada para os fluxos de correção e exclusão;
-3. ampliar a cobertura de testes conforme a evolução do sistema.
+2. ampliar a cobertura de testes conforme a evolução do sistema.
 
 ## Fluxo de desenvolvimento
 
