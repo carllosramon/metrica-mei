@@ -13,9 +13,6 @@ from app.domain.metric import Metric
 from app.repositories.metric_repository import (
     MetricPersistenceConflictError,
 )
-from app.repositories.metric_repository import (
-    MetricPersistenceConflictError,
-)
 
 
 def get_repository_class():
@@ -423,76 +420,6 @@ def test_sqlalchemy_metric_repository_deletes_metric(
         )
 
     assert loaded is None
-
-def test_sqlalchemy_metric_repository_translates_create_unique_conflict(
-    session_factory,
-):
-    with session_factory() as session:
-        owner = UserModel(
-            nome="Carlos",
-            email="carlos@email.com",
-            senha_hash="hash",
-            criado_em=datetime.now(timezone.utc),
-        )
-
-        session.add(owner)
-        session.commit()
-        session.refresh(owner)
-
-        content = ContentModel(
-            usuario_id=owner.id,
-            titulo="Conteúdo",
-            plataforma="Instagram",
-            tipo="Reels",
-            data_publicacao=date.today(),
-            criado_em=datetime.now(timezone.utc),
-        )
-
-        session.add(content)
-        session.commit()
-        session.refresh(content)
-
-        repository_class = get_repository_class()
-        repository = repository_class(session)
-
-        first = repository.create(
-            Metric(
-                id=None,
-                conteudo_id=content.id,
-                visualizacoes=100,
-                curtidas=10,
-                comentarios=1,
-                compartilhamentos=1,
-                alcance=80,
-                data_referencia=date.today(),
-                criado_em=datetime.now(timezone.utc),
-            )
-        )
-
-        with pytest.raises(
-            MetricPersistenceConflictError
-        ):
-            repository.create(
-                Metric(
-                    id=None,
-                    conteudo_id=content.id,
-                    visualizacoes=200,
-                    curtidas=20,
-                    comentarios=2,
-                    compartilhamentos=2,
-                    alcance=160,
-                    data_referencia=date.today(),
-                    criado_em=datetime.now(timezone.utc),
-                )
-            )
-
-        loaded = repository.get_by_id_and_content(
-            first.id,
-            content.id,
-        )
-
-    assert loaded is not None
-    assert loaded.id == first.id
 
 def test_sqlalchemy_metric_repository_translates_create_unique_conflict(
     session_factory,
