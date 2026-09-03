@@ -1,7 +1,9 @@
 import os
 from datetime import date
+from pathlib import Path
 
 import pytest
+from sqlalchemy.engine import make_url
 
 from app.database import models  # noqa: F401
 from app.database.connection import (
@@ -9,6 +11,23 @@ from app.database.connection import (
     create_engine_from_url,
     create_session_factory,
 )
+
+
+def _is_explicit_test_database(database_url: str) -> bool:
+    """Aceita reset apenas em bancos cujo nome declare uso de teste."""
+    database = make_url(database_url).database
+
+    if not database:
+        return False
+
+    stem = Path(database).stem.lower()
+
+    return (
+        stem == "test"
+        or stem == "teste"
+        or stem.endswith("_test")
+        or stem.endswith("_teste")
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -38,10 +57,19 @@ def database_url(tmp_path) -> str:
     o comportamento de sempre. Com ela, a suíte inteira roda contra o banco
     apontado — é assim que a integração contínua exercita as consultas da
     aplicação no PostgreSQL, onde diferenças de dialeto aparecem.
+
+    Como o fixture derruba e recria o schema, uma URL externa só é aceita
+    quando o nome do banco declara explicitamente que ele é de teste.
     """
     configurado = os.environ.get("TEST_DATABASE_URL")
 
     if configurado:
+        if not _is_explicit_test_database(configurado):
+            raise RuntimeError(
+                "TEST_DATABASE_URL precisa apontar para um "
+                "banco explicitamente de teste."
+            )
+
         return configurado
 
     return f"sqlite:///{tmp_path / 'teste.db'}"

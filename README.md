@@ -455,9 +455,13 @@ python -m pytest
 ```
 
 O banco é compartilhado por todos os testes, então o schema é derrubado e
-recriado a cada um. Os testes que verificam comportamento específico do SQLite
-e os da cadeia de migrations continuam em SQLite, porque é isso que eles
-verificam.
+recriado a cada um. Por segurança, `TEST_DATABASE_URL` só aceita bancos cujo
+nome declare explicitamente uso de teste, como `test`, `teste`, `*_test` ou
+`*_teste`. Isso evita que a suíte execute o reset do schema em um banco de
+desenvolvimento ou produção por engano.
+
+Os testes que verificam comportamento específico do SQLite e os da cadeia de
+migrations continuam em SQLite, porque é isso que eles verificam.
 
 ## Configuração do ambiente
 
@@ -586,7 +590,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-262 testes passando
+266 testes passando
 ```
 
 ## Integração contínua
