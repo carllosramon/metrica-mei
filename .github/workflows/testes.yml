@@ -47,7 +47,8 @@ jobs:
       - name: verificar os tipos
         run: npx tsc -b
 
-      - run: npm test
+      - name: rodar os testes com cobertura
+        run: npm run test:coverage
 
       - run: npm run build
 

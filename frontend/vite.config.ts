@@ -30,6 +30,15 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.test.tsx',
       ],
+      // O piso é o que foi medido, arredondado para baixo, e não uma meta
+      // escolhida no chute. Serve de trava contra queda, e sobe junto quando
+      // a cobertura sobe.
+      thresholds: {
+        statements: 65,
+        branches: 63,
+        functions: 57,
+        lines: 65,
+      },
     },
   },
 })
