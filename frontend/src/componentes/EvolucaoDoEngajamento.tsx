@@ -4,8 +4,8 @@ import estilos from './EvolucaoDoEngajamento.module.css'
 
 const ESQUERDA = 50
 const DIREITA = 580
-const TOPO = 20
-const BASE = 170
+const TOPO = 15
+const BASE = 110
 
 const MILISSEGUNDOS_POR_DIA = 86_400_000
 
@@ -106,7 +106,7 @@ export function EvolucaoDoEngajamento({ metricas }: Props) {
     <div className={estilos.grafico}>
       <svg
         className={estilos.desenho}
-        viewBox="0 0 600 200"
+        viewBox="0 0 600 140"
         role="img"
         aria-label={`Evolução do engajamento em ${calculaveis.length} medições, de ${formatarPercentual(
           calculaveis[0].engajamento,

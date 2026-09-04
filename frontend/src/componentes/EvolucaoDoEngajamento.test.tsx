@@ -107,6 +107,6 @@ describe('EvolucaoDoEngajamento', () => {
     const ponto = container.querySelector('circle')
 
     expect(ponto).not.toBeNull()
-    expect(ponto).toHaveAttribute('cy', '170')
+    expect(ponto).toHaveAttribute('cy', '110')
   })
 })
