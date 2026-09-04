@@ -16,5 +16,20 @@ export default defineConfig({
     // Os specs do Playwright sobem servidores de verdade e não rodam
     // no jsdom do Vitest.
     exclude: ['node_modules/**', 'e2e/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      // Fora da conta fica o que não decide comportamento, o ponto de
+      // entrada que só monta a árvore, as declarações de tipo que somem na
+      // compilação e os próprios testes.
+      exclude: [
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        'src/api/tipos.ts',
+        'src/testes/**',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+      ],
+    },
   },
 })
