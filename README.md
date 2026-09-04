@@ -337,8 +337,30 @@ npm test
 ```
 
 ```text
-44 testes passando
+52 testes passando
 ```
+
+Com medição de cobertura:
+
+```bash
+npm run test:coverage
+```
+
+```text
+Statements   : 65.41%
+Branches     : 63.68%
+Functions    : 57.57%
+Lines        : 65.56%
+```
+
+O piso configurado é o valor medido, arredondado para baixo, e a execução
+reprova quando a cobertura cai abaixo dele. Ficam fora da conta o ponto de
+entrada, as declarações de tipo e os próprios testes.
+
+O que ainda não é exercitado por teste unitário são as telas de entrar e
+cadastrar, a rota protegida e os módulos de `src/api` que montam os endereços
+das chamadas, hoje substituídos por simulação em todos os testes que os usam.
+A jornada de ponta a ponta cobre parte desse caminho em navegador real.
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
 
@@ -597,9 +619,10 @@ No estado atual do desenvolvimento:
 
 Cada push e cada pull request disparam quatro trabalhos paralelos: backend,
 frontend, jornada de ponta a ponta e validação em PostgreSQL 16. O job de
-PostgreSQL aplica todas as migrations e inspeciona o schema criado. Quando a
-jornada de navegador falha, o relatório fica anexado à execução, mostrando em
-que passo ela parou.
+PostgreSQL aplica todas as migrations e inspeciona o schema criado. O job de
+frontend roda a suíte com medição de cobertura, então uma queda abaixo do piso
+reprova a branch. Quando a jornada de navegador falha, o relatório fica anexado
+à execução, mostrando em que passo ela parou.
 
 A configuração está em `.github/workflows/testes.yml`.
 
