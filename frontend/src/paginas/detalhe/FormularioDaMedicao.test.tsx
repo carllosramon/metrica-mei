@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { FormEvent } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { dataDeHoje } from '../../formatacao'
@@ -30,13 +31,11 @@ const preenchido: DadosDaMedicao = {
 function renderizar(opcoes: {
   dados?: DadosDaMedicao
   enviando?: boolean
-  aoAlterar?: ReturnType<typeof vi.fn>
-  aoEnviar?: ReturnType<typeof vi.fn>
-  aoCancelar?: ReturnType<typeof vi.fn>
 }) {
-  const aoAlterar = opcoes.aoAlterar ?? vi.fn()
-  const aoEnviar = opcoes.aoEnviar ?? vi.fn()
-  const aoCancelar = opcoes.aoCancelar ?? vi.fn()
+  const aoAlterar =
+    vi.fn<(campo: keyof DadosDaMedicao, valor: string) => void>()
+  const aoEnviar = vi.fn<(evento: FormEvent) => void>()
+  const aoCancelar = vi.fn<() => void>()
 
   render(
     <FormularioDaMedicao
