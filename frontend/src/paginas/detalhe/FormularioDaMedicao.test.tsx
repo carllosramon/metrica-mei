@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -68,14 +68,34 @@ describe('FormularioDaMedicao', () => {
     expect(campo).toHaveAttribute('max', dataDeHoje())
   })
 
-  it('reporta cada alteração para quem controla o estado', async () => {
+  it('cada campo reporta a alteração com a própria chave', async () => {
     const usuario = userEvent.setup()
 
+    // Um valor distinto por campo desmascara chave trocada entre dois
+    // campos, que com valores iguais passaria sem ninguém notar.
     const { aoAlterar } = renderizar({})
 
-    await usuario.type(screen.getByLabelText('Alcance'), '9')
+    await usuario.type(screen.getByLabelText('Visualizações'), '1')
+    await usuario.type(screen.getByLabelText('Alcance'), '2')
+    await usuario.type(screen.getByLabelText('Curtidas'), '3')
+    await usuario.type(screen.getByLabelText('Comentários'), '4')
+    await usuario.type(screen.getByLabelText('Compartilhamentos'), '5')
 
-    expect(aoAlterar).toHaveBeenCalledWith('alcance', '9')
+    // Campo de data não aceita digitação letra a letra no jsdom, o valor
+    // entra pelo evento de mudança direto.
+    fireEvent.change(screen.getByLabelText('Data de referência'), {
+      target: { value: '2026-09-02' },
+    })
+
+    expect(aoAlterar).toHaveBeenCalledWith('visualizacoes', '1')
+    expect(aoAlterar).toHaveBeenCalledWith('alcance', '2')
+    expect(aoAlterar).toHaveBeenCalledWith('curtidas', '3')
+    expect(aoAlterar).toHaveBeenCalledWith('comentarios', '4')
+    expect(aoAlterar).toHaveBeenCalledWith('compartilhamentos', '5')
+    expect(aoAlterar).toHaveBeenCalledWith(
+      'data_referencia',
+      '2026-09-02',
+    )
   })
 
   it('entrega o envio para a página', async () => {

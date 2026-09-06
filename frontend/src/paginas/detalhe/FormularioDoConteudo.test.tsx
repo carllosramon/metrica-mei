@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -59,16 +59,33 @@ describe('FormularioDoConteudo', () => {
     )
   })
 
-  it('reporta cada alteração para quem controla o estado', async () => {
+  it('cada campo reporta a alteração com a própria chave', async () => {
     const usuario = userEvent.setup()
 
     // O formulário é controlado de fora, o valor só muda se o dono do
-    // estado aplicar. Digitar uma letra basta para provar o repasse.
+    // estado aplicar. Um valor distinto por campo desmascara chave
+    // trocada entre dois campos, que com valores iguais passaria.
     const { aoAlterar } = renderizar(vazio)
 
-    await usuario.type(screen.getByLabelText('Título'), 'R')
+    await usuario.type(screen.getByLabelText('Título'), 'T')
+    await usuario.type(screen.getByLabelText('Plataforma'), 'P')
+    await usuario.type(screen.getByLabelText('Tipo'), 'R')
+    await usuario.type(screen.getByLabelText('URL da publicação'), 'h')
 
-    expect(aoAlterar).toHaveBeenCalledWith('titulo', 'R')
+    // Campo de data não aceita digitação letra a letra no jsdom, o valor
+    // entra pelo evento de mudança direto.
+    fireEvent.change(screen.getByLabelText('Data de publicação'), {
+      target: { value: '2026-08-21' },
+    })
+
+    expect(aoAlterar).toHaveBeenCalledWith('titulo', 'T')
+    expect(aoAlterar).toHaveBeenCalledWith('plataforma', 'P')
+    expect(aoAlterar).toHaveBeenCalledWith('tipo', 'R')
+    expect(aoAlterar).toHaveBeenCalledWith('url_publicacao', 'h')
+    expect(aoAlterar).toHaveBeenCalledWith(
+      'data_publicacao',
+      '2026-08-21',
+    )
   })
 
   it('entrega o envio para a página', async () => {
