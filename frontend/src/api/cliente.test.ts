@@ -1,14 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { responderCom } from '../testes/respostaHttp'
 import { ErroDaApi, chamarApi, registrarPerdaDeSessao } from './cliente'
-
-function responderCom(status: number, corpo: unknown) {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => corpo,
-  } as Response
-}
 
 afterEach(() => {
   vi.unstubAllGlobals()
