@@ -337,7 +337,7 @@ npm test
 ```
 
 ```text
-52 testes passando
+90 testes passando
 ```
 
 Com medição de cobertura:
@@ -347,20 +347,21 @@ npm run test:coverage
 ```
 
 ```text
-Statements   : 65.41%
-Branches     : 63.68%
-Functions    : 57.57%
-Lines        : 65.56%
+Statements   : 82.95%
+Branches     : 74.62%
+Functions    : 84.84%
+Lines        : 83.41%
 ```
 
 O piso configurado é o valor medido, arredondado para baixo, e a execução
 reprova quando a cobertura cai abaixo dele. Ficam fora da conta o ponto de
 entrada, as declarações de tipo e os próprios testes.
 
-O que ainda não é exercitado por teste unitário são as telas de entrar e
-cadastrar, a rota protegida e os módulos de `src/api` que montam os endereços
-das chamadas, hoje substituídos por simulação em todos os testes que os usam.
-A jornada de ponta a ponta cobre parte desse caminho em navegador real.
+Os módulos de `src/api` são exercitados contra o cliente HTTP real, com o
+`fetch` simulado na ponta, fixando caminho, método e token de cada operação.
+O que segue sem teste unitário direto são os fluxos de edição e exclusão da
+tela de detalhe e os componentes de moldura, como layout e navegação. A
+jornada de ponta a ponta cobre esses fluxos em navegador real.
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
 
