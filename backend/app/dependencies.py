@@ -57,11 +57,6 @@ def get_auth_service(
     repository=Depends(get_user_repository),
     settings: Settings = Depends(get_settings),
 ):
-    if not settings.jwt_secret:
-        raise RuntimeError(
-            "JWT_SECRET não configurado."
-        )
-
     return AuthService(
         repository,
         PasswordService(),
