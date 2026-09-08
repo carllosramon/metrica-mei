@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   MemoryRouter,
@@ -9,8 +9,17 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ErroDaApi } from '../api/cliente'
-import { buscarConteudo } from '../api/conteudos'
-import { criarMetrica, listarMetricas } from '../api/metricas'
+import {
+  atualizarConteudo,
+  buscarConteudo,
+  excluirConteudo,
+} from '../api/conteudos'
+import {
+  atualizarMetrica,
+  criarMetrica,
+  excluirMetrica,
+  listarMetricas,
+} from '../api/metricas'
 import type { Conteudo, Metrica } from '../api/tipos'
 import { ContextoAutenticacao } from '../autenticacao/contexto'
 import type { ValorDaAutenticacao } from '../autenticacao/contexto'
@@ -166,6 +175,171 @@ describe('ConteudoDetalhe', () => {
 
     expect(
       screen.getByRole('button', { name: 'Confirmar exclusão' }),
+    ).toBeInTheDocument()
+  })
+
+  it('salva o conteúdo mandando URL em branco como nula', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockResolvedValue(conteudo)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    // O campo vazio na tela vira null na API, e é assim que se remove a
+    // URL de um conteúdo. Mandar texto vazio seria recusado.
+    expect(atualizarConteudo).toHaveBeenCalledWith(
+      'token-de-teste',
+      7,
+      expect.objectContaining({
+        titulo: 'Reels sobre preço',
+        url_publicacao: null,
+      }),
+    )
+  })
+
+  it('mostra o motivo quando salvar o conteúdo falha', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockRejectedValue(
+      new ErroDaApi(422, 'Título não pode ficar em branco.'),
+    )
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    expect(
+      await screen.findByText('Título não pode ficar em branco.'),
+    ).toBeInTheDocument()
+
+    // A tela continua utilizável para a correção.
+    expect(
+      screen.getByRole('button', { name: 'Salvar alterações' }),
+    ).toBeEnabled()
+  })
+
+  it('editar abre o formulário preenchido e corrige a medição certa', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+    vi.mocked(atualizarMetrica).mockResolvedValue(medicao)
+
+    renderizar()
+
+    await usuario.click(await screen.findByRole('button', { name: 'Editar' }))
+
+    expect(screen.getByLabelText('Alcance')).toHaveValue(1450)
+    expect(screen.getByLabelText('Data de referência')).toHaveValue(
+      '2026-08-22',
+    )
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar medição' }),
+    )
+
+    // O id da medição em edição é o que separa corrigir de criar outra.
+    expect(atualizarMetrica).toHaveBeenCalledWith(
+      'token-de-teste',
+      7,
+      3,
+      expect.objectContaining({ alcance: 1450 }),
+    )
+  })
+
+  it('exclui a medição só no segundo clique', async () => {
+    const usuario = userEvent.setup()
+
+    // A lista muda depois da exclusão, então a simulação lê uma variável
+    // em vez de devolver sempre a mesma resposta.
+    let medicoes = [medicao]
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockImplementation(async () => medicoes)
+    vi.mocked(excluirMetrica).mockImplementation(async () => {
+      medicoes = []
+    })
+
+    renderizar()
+
+    // Fora da tabela existe "Excluir conteúdo", que não é o alvo aqui.
+    const tabela = await screen.findByRole('table')
+
+    await usuario.click(within(tabela).getByRole('button', { name: 'Excluir' }))
+
+    expect(excluirMetrica).not.toHaveBeenCalled()
+
+    await usuario.click(
+      within(tabela).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    expect(excluirMetrica).toHaveBeenCalledWith('token-de-teste', 7, 3)
+    expect(
+      await screen.findByText(/Nenhuma medição registrada/),
+    ).toBeInTheDocument()
+  })
+
+  it('mantém a linha e mostra o motivo quando excluir a medição falha', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+    vi.mocked(excluirMetrica).mockRejectedValue(
+      new ErroDaApi(500, 'O servidor não conseguiu excluir.'),
+    )
+
+    renderizar()
+
+    const tabela = await screen.findByRole('table')
+
+    await usuario.click(within(tabela).getByRole('button', { name: 'Excluir' }))
+    await usuario.click(
+      within(tabela).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    expect(
+      await screen.findByText('O servidor não conseguiu excluir.'),
+    ).toBeInTheDocument()
+    expect(
+      within(tabela).getByRole('cell', { name: '22/08/2026' }),
+    ).toBeInTheDocument()
+  })
+
+  it('fica na tela e mostra o motivo quando excluir o conteúdo falha', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(excluirConteudo).mockRejectedValue(
+      new ErroDaApi(500, 'O servidor não conseguiu excluir.'),
+    )
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Excluir conteúdo' }),
+    )
+    await usuario.click(
+      screen.getByRole('button', { name: 'Confirmar exclusão' }),
+    )
+
+    expect(
+      await screen.findByText('O servidor não conseguiu excluir.'),
+    ).toBeInTheDocument()
+
+    // Sem navegar, o conteúdo segue na tela para uma nova tentativa.
+    expect(
+      screen.getByRole('heading', { name: 'Reels sobre preço' }),
     ).toBeInTheDocument()
   })
 })
