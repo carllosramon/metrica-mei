@@ -1,0 +1,9 @@
+[run]
+source = app
+
+[report]
+# O piso é o valor medido quando a trava entrou, arredondado para baixo.
+# Serve contra queda, e sobe junto quando a cobertura sobe.
+fail_under = 99
+show_missing = True
+skip_covered = True
