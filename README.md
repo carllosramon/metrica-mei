@@ -337,7 +337,7 @@ npm test
 ```
 
 ```text
-90 testes passando
+96 testes passando
 ```
 
 Com medição de cobertura:
@@ -347,10 +347,10 @@ npm run test:coverage
 ```
 
 ```text
-Statements   : 82.95%
-Branches     : 74.62%
-Functions    : 84.84%
-Lines        : 83.41%
+Statements   : 90.97%
+Branches     : 79.60%
+Functions    : 90.90%
+Lines        : 91.58%
 ```
 
 O piso configurado é o valor medido, arredondado para baixo, e a execução
@@ -359,9 +359,10 @@ entrada, as declarações de tipo e os próprios testes.
 
 Os módulos de `src/api` são exercitados contra o cliente HTTP real, com o
 `fetch` simulado na ponta, fixando caminho, método e token de cada operação.
-O que segue sem teste unitário direto são os fluxos de edição e exclusão da
-tela de detalhe e os componentes de moldura, como layout e navegação. A
-jornada de ponta a ponta cobre esses fluxos em navegador real.
+A tela de detalhe tem os caminhos de falha cobertos, salvar, editar e excluir
+com o servidor recusando. O que segue sem teste unitário direto são os
+componentes de moldura, como layout e navegação, que a jornada de ponta a
+ponta atravessa em navegador real.
 
 Jornada de ponta a ponta em navegador real, com backend e frontend no ar:
 
@@ -613,16 +614,32 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-266 testes passando
+268 testes passando
 ```
+
+Com medição de cobertura:
+
+```powershell
+python -m coverage run -m pytest -q
+python -m coverage report
+```
+
+```text
+1023 instruções, 9 sem cobrir, 99%
+```
+
+O piso configurado no `.coveragerc` é 99, o valor medido arredondado para
+baixo, e o `coverage report` reprova abaixo dele. O que falta são nove
+instruções espalhadas por seis arquivos, entre elas ramos de erro do
+relógio de negócio e do serviço de conteúdo.
 
 ## Integração contínua
 
 Cada push e cada pull request disparam quatro trabalhos paralelos: backend,
 frontend, jornada de ponta a ponta e validação em PostgreSQL 16. O job de
-PostgreSQL aplica todas as migrations e inspeciona o schema criado. O job de
-frontend roda a suíte com medição de cobertura, então uma queda abaixo do piso
-reprova a branch. Quando a jornada de navegador falha, o relatório fica anexado
+PostgreSQL aplica todas as migrations e inspeciona o schema criado. Os jobs de
+backend e de frontend rodam as suítes com medição de cobertura, então uma queda
+abaixo do piso de qualquer um dos lados reprova a branch. Quando a jornada de navegador falha, o relatório fica anexado
 à execução, mostrando em que passo ela parou.
 
 A configuração está em `.github/workflows/testes.yml`.
