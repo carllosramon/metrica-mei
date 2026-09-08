@@ -1,7 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.controllers.auth_controller import router as auth_router
 from app.controllers.content_controller import router as content_router
 from app.controllers.dashboard_controller import (
@@ -68,11 +70,27 @@ _GRUPOS = [
 ]
 
 
+def verificar_configuracao(settings: Settings) -> None:
+    # Sem o segredo a API subia, respondia no /health e só falhava no
+    # primeiro login, longe de quem estava olhando a subida. Recusar
+    # aqui faz o erro aparecer no lugar certo.
+    if not settings.jwt_secret:
+        raise RuntimeError("JWT_SECRET não configurado.")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    verificar_configuracao(get_settings())
+
+    yield
+
+
 app = FastAPI(
     title="MetricaMEI API",
     version="0.11.0",
     description=_DESCRICAO,
     openapi_tags=_GRUPOS,
+    lifespan=lifespan,
 )
 
 # O frontend roda em outra porta durante o desenvolvimento, então o
