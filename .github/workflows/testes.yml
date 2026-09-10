@@ -163,6 +163,11 @@ jobs:
       - name: aplicar migrations no PostgreSQL
         run: python -m alembic upgrade head
 
+      # A suíte roda sobre create_all e nunca sobre o schema que a migration
+      # gera. Este é o único lugar em que uma deriva entre os dois aparece.
+      - name: conferir migrations contra os modelos
+        run: python -m alembic check
+
       - name: verificar schema no PostgreSQL
         run: |
           python - <<'PY'
