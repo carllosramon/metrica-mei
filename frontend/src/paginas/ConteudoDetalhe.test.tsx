@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   MemoryRouter,
@@ -341,6 +341,92 @@ describe('ConteudoDetalhe', () => {
     // Sem navegar, o conteúdo segue na tela para uma nova tentativa.
     expect(
       screen.getByRole('heading', { name: 'Reels sobre preço' }),
+    ).toBeInTheDocument()
+  })
+
+  it('a falha na exclusão do conteúdo desarma a confirmação', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(excluirConteudo).mockRejectedValue(
+      new ErroDaApi(500, 'O servidor não conseguiu excluir.'),
+    )
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Excluir conteúdo' }),
+    )
+    await usuario.click(
+      screen.getByRole('button', { name: 'Confirmar exclusão' }),
+    )
+
+    await screen.findByText('O servidor não conseguiu excluir.')
+
+    // O próximo clique volta a pedir confirmação em vez de excluir direto.
+    expect(
+      screen.getByRole('button', { name: 'Excluir conteúdo' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Confirmar exclusão' }),
+    ).toBeNull()
+  })
+
+  it('a linha armada desarma quando a lista recarrega', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+    vi.mocked(criarMetrica).mockResolvedValue(medicao)
+
+    renderizar()
+
+    // O formulário abre antes de armar, para que só a recarga que segue o
+    // salvar seja responsável por desarmar.
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    const tabela = screen.getByRole('table')
+
+    await usuario.click(within(tabela).getByRole('button', { name: 'Excluir' }))
+
+    expect(
+      within(tabela).getByRole('button', { name: 'Confirmar' }),
+    ).toBeInTheDocument()
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar medição' }),
+    )
+
+    await waitFor(() => {
+      expect(
+        within(tabela).getByRole('button', { name: 'Excluir' }),
+      ).toBeInTheDocument()
+    })
+    expect(
+      within(tabela).queryByRole('button', { name: 'Confirmar' }),
+    ).toBeNull()
+  })
+
+  it('abrir o formulário de medição desarma a linha', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+
+    renderizar()
+
+    const tabela = await screen.findByRole('table')
+
+    await usuario.click(within(tabela).getByRole('button', { name: 'Excluir' }))
+    await usuario.click(
+      screen.getByRole('button', { name: 'Registrar medição' }),
+    )
+
+    expect(
+      within(tabela).getByRole('button', { name: 'Excluir' }),
     ).toBeInTheDocument()
   })
 })

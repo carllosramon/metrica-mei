@@ -107,6 +107,12 @@ export function ConteudoDetalhe() {
         url_publicacao: encontrado.url_publicacao ?? '',
       })
       definirMetricas(medicoes)
+
+      // Dados novos na tela, confirmações antigas fora. Uma linha armada
+      // que sobrevivesse à recarga excluiria no clique seguinte sem a
+      // segunda etapa que é a razão de ela existir.
+      definirMedicaoConfirmada(null)
+      definirConfirmandoExclusao(false)
     } catch (falha) {
       if (!aindaVale()) {
         return
@@ -162,17 +168,22 @@ export function ConteudoDetalhe() {
       await excluirConteudo(token, identificador)
       navegar('/conteudos', { replace: true })
     } catch (falha) {
+      // A falha desarma o botão. Deixá-lo em "Confirmar exclusão" faria o
+      // próximo clique, talvez acidental, excluir sem a segunda etapa.
+      definirConfirmandoExclusao(false)
       definirErro(mensagemDe(falha, 'Não foi possível excluir o conteúdo.'))
     }
   }
 
   function abrirNovaMedicao() {
+    definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(null)
     definirMedicao(MEDICAO_VAZIA)
     definirFormularioAberto(true)
   }
 
   function abrirEdicaoDaMedicao(metrica: Metrica) {
+    definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(metrica.id)
     definirMedicao({
       visualizacoes: String(metrica.visualizacoes),
