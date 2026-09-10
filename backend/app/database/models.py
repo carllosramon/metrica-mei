@@ -1,9 +1,9 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.connection import Base
+from app.database.connection import Base, DataHoraUtc
 
 
 class UserModel(Base):
@@ -31,7 +31,7 @@ class UserModel(Base):
     )
 
     criado_em: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DataHoraUtc,
         nullable=False,
     )
 
@@ -71,7 +71,7 @@ class ContentModel(Base):
     )
 
     criado_em: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DataHoraUtc,
         nullable=False,
     )
 
@@ -135,6 +135,6 @@ class MetricModel(Base):
     )
 
     criado_em: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DataHoraUtc,
         nullable=False,
     )
