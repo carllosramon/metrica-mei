@@ -12,6 +12,9 @@ type Props = {
   // confirma. Guardar qual linha está marcada é da página, porque só ela
   // sabe quando a lista foi recarregada.
   metricaConfirmada: number | null
+  // Enquanto a página tem uma requisição no ar, os botões ficam presos.
+  // Um clique duplo em "Confirmar" mandaria duas exclusões.
+  desabilitada?: boolean
   aoEditar: (metrica: Metrica) => void
   aoExcluir: (metricaId: number) => void
 }
@@ -19,6 +22,7 @@ type Props = {
 export function TabelaDeMedicoes({
   metricas,
   metricaConfirmada,
+  desabilitada = false,
   aoEditar,
   aoExcluir,
 }: Props) {
@@ -76,6 +80,7 @@ export function TabelaDeMedicoes({
                   <button
                     className={estilos.botaoDaLinha}
                     type="button"
+                    disabled={desabilitada}
                     onClick={() => aoEditar(metrica)}
                   >
                     Editar
@@ -83,6 +88,7 @@ export function TabelaDeMedicoes({
                   <button
                     className={estilos.botaoDaLinha}
                     type="button"
+                    disabled={desabilitada}
                     onClick={() => aoExcluir(metrica.id)}
                   >
                     {metricaConfirmada === metrica.id

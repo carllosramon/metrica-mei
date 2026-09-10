@@ -2,21 +2,35 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
-import { ErroDaApi } from '../api/cliente'
 import { criarConteudo, listarConteudos } from '../api/conteudos'
+import { mensagemDe } from '../api/falhas'
 import type { Conteudo } from '../api/tipos'
 import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { reservarPedido } from '../carregamento'
 import { Campo } from '../componentes/Campo'
 import { dataDeHoje, formatarData } from '../formatacao'
 import estilos from './Conteudos.module.css'
+import { urlOuNulo } from './formularios'
 
-const FORMULARIO_VAZIO = {
-  titulo: '',
-  plataforma: '',
-  tipo: '',
-  data_publicacao: dataDeHoje(),
-  url_publicacao: '',
+type DadosDoFormulario = {
+  titulo: string
+  plataforma: string
+  tipo: string
+  data_publicacao: string
+  url_publicacao: string
+}
+
+// A data padrão é calculada na hora de abrir o formulário. Calculada no
+// carregamento do módulo, numa aba aberta depois da meia-noite ela ficava
+// em ontem.
+function formularioVazio(): DadosDoFormulario {
+  return {
+    titulo: '',
+    plataforma: '',
+    tipo: '',
+    data_publicacao: dataDeHoje(),
+    url_publicacao: '',
+  }
 }
 
 export function Conteudos() {
@@ -25,7 +39,7 @@ export function Conteudos() {
   const [conteudos, definirConteudos] = useState<Conteudo[] | null>(null)
   const [erro, definirErro] = useState<string | null>(null)
   const [formularioAberto, definirFormularioAberto] = useState(false)
-  const [formulario, definirFormulario] = useState(FORMULARIO_VAZIO)
+  const [formulario, definirFormulario] = useState(formularioVazio)
   const [enviando, definirEnviando] = useState(false)
 
   // A carga inicial lenta podia responder depois da recarga que segue um
@@ -52,9 +66,7 @@ export function Conteudos() {
       }
 
       definirErro(
-        falha instanceof ErroDaApi
-          ? falha.message
-          : 'Não foi possível carregar os conteúdos.',
+        mensagemDe(falha, 'Não foi possível carregar os conteúdos.'),
       )
     }
   }, [token])
@@ -63,13 +75,13 @@ export function Conteudos() {
     void carregar()
   }, [carregar])
 
-  function alterar(campo: keyof typeof FORMULARIO_VAZIO, valor: string) {
+  function alterar(campo: keyof DadosDoFormulario, valor: string) {
     definirFormulario((atual) => ({ ...atual, [campo]: valor }))
   }
 
   function fecharFormulario() {
     definirFormularioAberto(false)
-    definirFormulario(FORMULARIO_VAZIO)
+    definirFormulario(formularioVazio())
   }
 
   async function aoEnviar(evento: FormEvent) {
@@ -88,21 +100,14 @@ export function Conteudos() {
         plataforma: formulario.plataforma,
         tipo: formulario.tipo,
         data_publicacao: formulario.data_publicacao,
-        // O backend recusa texto vazio, e campo em branco significa que o
-        // usuário não quis informar a URL.
-        url_publicacao:
-          formulario.url_publicacao.trim() === ''
-            ? null
-            : formulario.url_publicacao,
+        url_publicacao: urlOuNulo(formulario.url_publicacao),
       })
 
       fecharFormulario()
       await carregar()
     } catch (falha) {
       definirErro(
-        falha instanceof ErroDaApi
-          ? falha.message
-          : 'Não foi possível cadastrar o conteúdo.',
+        mensagemDe(falha, 'Não foi possível cadastrar o conteúdo.'),
       )
     } finally {
       definirEnviando(false)

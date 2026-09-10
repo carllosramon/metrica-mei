@@ -8,6 +8,7 @@ import {
   buscarConteudo,
   excluirConteudo,
 } from '../api/conteudos'
+import { mensagemDe } from '../api/falhas'
 import {
   atualizarMetrica,
   criarMetrica,
@@ -25,14 +26,20 @@ import type { DadosDaMedicao } from './detalhe/FormularioDaMedicao'
 import { FormularioDoConteudo } from './detalhe/FormularioDoConteudo'
 import type { DadosEditaveis } from './detalhe/FormularioDoConteudo'
 import { TabelaDeMedicoes } from './detalhe/TabelaDeMedicoes'
+import { urlOuNulo } from './formularios'
 
-const MEDICAO_VAZIA: DadosDaMedicao = {
-  visualizacoes: '0',
-  curtidas: '0',
-  comentarios: '0',
-  compartilhamentos: '0',
-  alcance: '0',
-  data_referencia: dataDeHoje(),
+// A data padrão é calculada na hora de abrir o formulário. Calculada no
+// carregamento do módulo, numa aba aberta depois da meia-noite ela ficava
+// em ontem, e a medição era salva no dia errado.
+function medicaoVazia(): DadosDaMedicao {
+  return {
+    visualizacoes: '0',
+    curtidas: '0',
+    comentarios: '0',
+    compartilhamentos: '0',
+    alcance: '0',
+    data_referencia: dataDeHoje(),
+  }
 }
 
 const CONTEUDO_VAZIO: DadosEditaveis = {
@@ -43,22 +50,23 @@ const CONTEUDO_VAZIO: DadosEditaveis = {
   url_publicacao: '',
 }
 
-function mensagemDe(falha: unknown, alternativa: string): string {
-  return falha instanceof ErroDaApi ? falha.message : alternativa
-}
-
-// Campo em branco significa remover a URL, e o backend recusa texto vazio:
-// null é como ele entende a remoção.
-function urlOuNulo(valor: string): string | null {
-  return valor.trim() === '' ? null : valor
-}
-
 export function ConteudoDetalhe() {
   const { token } = useAutenticacao()
   const { conteudoId } = useParams()
   const navegar = useNavigate()
 
   const identificador = Number(conteudoId)
+
+  // Endereço como /conteudos/abc viraria GET /conteudos/NaN, um 422 com a
+  // mensagem do Pydantic em inglês na tela. A lista é o destino certo.
+  const identificadorValido =
+    Number.isInteger(identificador) && identificador > 0
+
+  useEffect(() => {
+    if (!identificadorValido) {
+      navegar('/conteudos', { replace: true })
+    }
+  }, [identificadorValido, navegar])
 
   const [conteudo, definirConteudo] = useState<Conteudo | null>(null)
   const [metricas, definirMetricas] = useState<Metrica[] | null>(null)
@@ -68,7 +76,7 @@ export function ConteudoDetalhe() {
   const [dadosDoConteudo, definirDadosDoConteudo] = useState(CONTEUDO_VAZIO)
   const [confirmandoExclusao, definirConfirmandoExclusao] = useState(false)
 
-  const [medicao, definirMedicao] = useState(MEDICAO_VAZIA)
+  const [medicao, definirMedicao] = useState(medicaoVazia)
   const [formularioAberto, definirFormularioAberto] = useState(false)
   const [medicaoEmEdicao, definirMedicaoEmEdicao] = useState<number | null>(
     null,
@@ -99,7 +107,7 @@ export function ConteudoDetalhe() {
   )
 
   const carregarConteudo = useCallback(async () => {
-    if (token === null) {
+    if (token === null || !identificadorValido) {
       return
     }
 
@@ -132,13 +140,13 @@ export function ConteudoDetalhe() {
 
       tratarFalhaDeCarga(falha, 'Não foi possível carregar o conteúdo.')
     }
-  }, [token, identificador, tratarFalhaDeCarga])
+  }, [token, identificador, identificadorValido, tratarFalhaDeCarga])
 
   // Salvar ou excluir uma medição recarrega só as medições. Recarregar o
   // conteúdo junto reescrevia o formulário e apagava, em silêncio, o que
   // o usuário tinha digitado ali e ainda não salvado.
   const carregarMedicoes = useCallback(async () => {
-    if (token === null) {
+    if (token === null || !identificadorValido) {
       return
     }
 
@@ -160,7 +168,7 @@ export function ConteudoDetalhe() {
 
       tratarFalhaDeCarga(falha, 'Não foi possível carregar as medições.')
     }
-  }, [token, identificador, tratarFalhaDeCarga])
+  }, [token, identificador, identificadorValido, tratarFalhaDeCarga])
 
   useEffect(() => {
     void carregarConteudo()
@@ -192,9 +200,11 @@ export function ConteudoDetalhe() {
   }
 
   async function removerConteudo() {
-    if (token === null) {
+    if (token === null || enviando) {
       return
     }
+
+    definirEnviando(true)
 
     try {
       await excluirConteudo(token, identificador)
@@ -204,13 +214,15 @@ export function ConteudoDetalhe() {
       // próximo clique, talvez acidental, excluir sem a segunda etapa.
       definirConfirmandoExclusao(false)
       definirErro(mensagemDe(falha, 'Não foi possível excluir o conteúdo.'))
+    } finally {
+      definirEnviando(false)
     }
   }
 
   function abrirNovaMedicao() {
     definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(null)
-    definirMedicao(MEDICAO_VAZIA)
+    definirMedicao(medicaoVazia())
     definirFormularioAberto(true)
   }
 
@@ -276,15 +288,25 @@ export function ConteudoDetalhe() {
       return
     }
 
+    definirEnviando(true)
+
     try {
       await excluirMetrica(token, identificador, metricaId)
       await carregarMedicoes()
     } catch (falha) {
       definirErro(mensagemDe(falha, 'Não foi possível excluir a medição.'))
+    } finally {
+      definirEnviando(false)
     }
   }
 
   function confirmarOuRemoverMedicao(metricaId: number) {
+    // Um clique duplo em "Confirmar" mandava duas exclusões, e o 404 da
+    // segunda aparecia como erro depois de a linha já ter sumido.
+    if (enviando) {
+      return
+    }
+
     if (medicaoConfirmada === metricaId) {
       void removerMedicao(metricaId)
       return
@@ -329,6 +351,7 @@ export function ConteudoDetalhe() {
             confirmandoExclusao ? estilos.confirmando : estilos.perigo
           }`}
           type="button"
+          disabled={enviando}
           onClick={() =>
             confirmandoExclusao
               ? void removerConteudo()
@@ -391,6 +414,7 @@ export function ConteudoDetalhe() {
           <TabelaDeMedicoes
             metricas={metricas}
             metricaConfirmada={medicaoConfirmada}
+            desabilitada={enviando}
             aoEditar={abrirEdicaoDaMedicao}
             aoExcluir={confirmarOuRemoverMedicao}
           />

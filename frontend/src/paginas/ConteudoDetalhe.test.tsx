@@ -23,6 +23,7 @@ import {
 import type { Conteudo, Metrica } from '../api/tipos'
 import { ContextoAutenticacao } from '../autenticacao/contexto'
 import type { ValorDaAutenticacao } from '../autenticacao/contexto'
+import { dataDeHoje } from '../formatacao'
 import { adiar } from '../testes/adiar'
 import { ConteudoDetalhe } from './ConteudoDetalhe'
 
@@ -38,6 +39,13 @@ vi.mock('../api/metricas', () => ({
   atualizarMetrica: vi.fn(),
   excluirMetrica: vi.fn(),
 }))
+
+// Só a data de hoje é substituível. O resto da formatação segue real.
+vi.mock('../formatacao', async (importarOriginal) => {
+  const original = await importarOriginal<typeof import('../formatacao')>()
+
+  return { ...original, dataDeHoje: vi.fn(original.dataDeHoje) }
+})
 
 const autenticacao: ValorDaAutenticacao = {
   token: 'token-de-teste',
@@ -583,5 +591,88 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     // no conteúdo e ainda não salvo continua no campo.
     expect(titulo).toHaveValue('Reels sobre preço revisado')
     expect(buscarConteudo).toHaveBeenCalledTimes(1)
+  })
+
+  it('clique duplo em confirmar manda uma exclusão só', async () => {
+    const usuario = userEvent.setup()
+
+    const exclusao = adiar<void>()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+    vi.mocked(excluirMetrica).mockReturnValue(exclusao.promessa)
+
+    renderizar()
+
+    const tabela = await screen.findByRole('table')
+
+    await usuario.click(within(tabela).getByRole('button', { name: 'Excluir' }))
+    await usuario.dblClick(
+      within(tabela).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    // O segundo clique cai num botão preso, e não numa segunda exclusão
+    // cujo 404 apareceria como erro.
+    expect(excluirMetrica).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      exclusao.resolver()
+    })
+  })
+
+  it('endereço inválido devolve à lista sem consultar a api', async () => {
+    render(
+      <ContextoAutenticacao.Provider value={autenticacao}>
+        <MemoryRouter initialEntries={['/conteudos/abc']}>
+          <Routes>
+            <Route path="/conteudos" element={<h1>Lista falsa</h1>} />
+            <Route
+              path="/conteudos/:conteudoId"
+              element={<ConteudoDetalhe />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ContextoAutenticacao.Provider>,
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Lista falsa' }),
+    ).toBeInTheDocument()
+    expect(buscarConteudo).not.toHaveBeenCalled()
+  })
+
+  it('a data padrão da medição é a de quando o formulário abre', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizar()
+
+    vi.mocked(dataDeHoje).mockReturnValue('2026-09-09')
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    expect(screen.getByLabelText('Data de referência')).toHaveValue(
+      '2026-09-09',
+    )
+
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    // Virou o dia com a aba aberta. Abrir de novo precisa trazer o dia
+    // novo, e não o de quando a página foi carregada.
+    vi.mocked(dataDeHoje).mockReturnValue('2026-09-10')
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'Registrar medição' }),
+    )
+
+    expect(screen.getByLabelText('Data de referência')).toHaveValue(
+      '2026-09-10',
+    )
+
+    vi.mocked(dataDeHoje).mockRestore()
   })
 })
