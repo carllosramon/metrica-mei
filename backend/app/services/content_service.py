@@ -30,32 +30,32 @@ class ContentService:
 
     @staticmethod
     def _normalize_text(
-        value: object,
-        max_length: int,
+        texto: object,
+        tamanho_maximo: int,
     ) -> str:
-        if not isinstance(value, str):
+        if not isinstance(texto, str):
             raise InvalidContentError
 
-        normalized = value.strip()
+        normalized = texto.strip()
 
-        if not 1 <= len(normalized) <= max_length:
+        if not 1 <= len(normalized) <= tamanho_maximo:
             raise InvalidContentError
 
         return normalized
 
     @staticmethod
     def _normalize_url(
-        value: object,
+        endereco: object,
     ) -> str | None:
         # None é aceito de propósito: é assim que o PATCH remove a URL
         # de um conteúdo que já a tinha.
-        if value is None:
+        if endereco is None:
             return None
 
-        if not isinstance(value, str):
+        if not isinstance(endereco, str):
             raise InvalidContentError
 
-        normalized = value.strip()
+        normalized = endereco.strip()
 
         # A validação fica no serviço, e não em HttpUrl do Pydantic, para
         # manter a regra de negócio fora da camada de contrato. Conferir só
@@ -76,15 +76,15 @@ class ContentService:
 
     @staticmethod
     def _validate_publication_date(
-        value: object,
+        dia: object,
     ) -> date:
-        if not isinstance(value, date) or isinstance(value, datetime):
+        if not isinstance(dia, date) or isinstance(dia, datetime):
             raise InvalidContentError
 
-        if value > business_today():
+        if dia > business_today():
             raise InvalidContentError
 
-        return value
+        return dia
 
     def create(
         self,
@@ -142,6 +142,66 @@ class ContentService:
 
         return content
 
+    def _recusar_data_depois_das_medicoes(
+        self,
+        content_id: int,
+        data_publicacao: date,
+    ) -> None:
+        # Empurrar a publicação para depois de uma medição existente
+        # deixaria o histórico com desempenho medido antes de o conteúdo
+        # ter sido publicado.
+        metricas = self._metric_repository.list_by_content(
+            content_id
+        )
+
+        for metrica in metricas:
+            if metrica.data_referencia < data_publicacao:
+                raise InvalidContentError
+
+    def _alteracoes_normalizadas(
+        self,
+        content_id: int,
+        titulo: object,
+        plataforma: object,
+        tipo: object,
+        data_publicacao: object,
+        url_publicacao: object,
+    ) -> dict[str, object]:
+        # Só os campos informados entram. Os ausentes ficam de fora para
+        # que o replace preserve o valor que já estava gravado.
+        alteracoes: dict[str, object] = {}
+
+        if titulo is not _UNSET:
+            alteracoes["titulo"] = self._normalize_text(titulo, 200)
+
+        if plataforma is not _UNSET:
+            alteracoes["plataforma"] = self._normalize_text(
+                plataforma,
+                50,
+            )
+
+        if tipo is not _UNSET:
+            alteracoes["tipo"] = self._normalize_text(tipo, 50)
+
+        if data_publicacao is not _UNSET:
+            nova_data = self._validate_publication_date(
+                data_publicacao
+            )
+
+            self._recusar_data_depois_das_medicoes(
+                content_id,
+                nova_data,
+            )
+
+            alteracoes["data_publicacao"] = nova_data
+
+        if url_publicacao is not _UNSET:
+            alteracoes["url_publicacao"] = self._normalize_url(
+                url_publicacao
+            )
+
+        return alteracoes
+
     def update(
         self,
         content_id: int,
@@ -152,13 +212,15 @@ class ContentService:
         data_publicacao: object = _UNSET,
         url_publicacao: object = _UNSET,
     ) -> Content:
-        if (
-            titulo is _UNSET
-            and plataforma is _UNSET
-            and tipo is _UNSET
-            and data_publicacao is _UNSET
-            and url_publicacao is _UNSET
-        ):
+        informados = (
+            titulo,
+            plataforma,
+            tipo,
+            data_publicacao,
+            url_publicacao,
+        )
+
+        if all(campo is _UNSET for campo in informados):
             raise InvalidContentError
 
         content = self.get(
@@ -166,49 +228,18 @@ class ContentService:
             user_id=user_id,
         )
 
-        normalized_publication_date = (
-            self._validate_publication_date(data_publicacao)
-            if data_publicacao is not _UNSET
-            else content.data_publicacao
+        alteracoes = self._alteracoes_normalizadas(
+            content_id,
+            titulo,
+            plataforma,
+            tipo,
+            data_publicacao,
+            url_publicacao,
         )
 
-        if data_publicacao is not _UNSET:
-            metrics = self._metric_repository.list_by_content(
-                content_id
-            )
-
-            if any(
-                metric.data_referencia < normalized_publication_date
-                for metric in metrics
-            ):
-                raise InvalidContentError
-
-        updated_content = replace(
-            content,
-            titulo=(
-                self._normalize_text(titulo, 200)
-                if titulo is not _UNSET
-                else content.titulo
-            ),
-            plataforma=(
-                self._normalize_text(plataforma, 50)
-                if plataforma is not _UNSET
-                else content.plataforma
-            ),
-            tipo=(
-                self._normalize_text(tipo, 50)
-                if tipo is not _UNSET
-                else content.tipo
-            ),
-            data_publicacao=normalized_publication_date,
-            url_publicacao=(
-                self._normalize_url(url_publicacao)
-                if url_publicacao is not _UNSET
-                else content.url_publicacao
-            ),
+        persistido = self._repository.update(
+            replace(content, **alteracoes)
         )
-
-        persistido = self._repository.update(updated_content)
 
         # O conteúdo pode ter sido excluído entre a leitura acima e
         # esta gravação. Devolver os valores enviados diria ao

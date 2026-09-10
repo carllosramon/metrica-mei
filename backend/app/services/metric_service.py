@@ -77,27 +77,27 @@ class MetricService:
 
     @staticmethod
     def _validate_metric_values(
-        values: dict[str, object],
+        medidas: dict[str, object],
     ) -> None:
-        for field in _METRIC_VALUE_FIELDS:
-            if field not in values:
+        for campo in _METRIC_VALUE_FIELDS:
+            if campo not in medidas:
                 continue
 
-            value = values[field]
+            medida = medidas[campo]
 
             # A comparação é com type, e não isinstance, porque bool é
             # subclasse de int em Python: com isinstance, curtidas=True
             # passaria como métrica válida e viraria 1 no banco.
             if (
-                type(value) is not int
-                or value < 0
+                type(medida) is not int
+                or medida < 0
             ):
                 raise InvalidMetricError(
                     "As métricas devem ser inteiras "
                     "e maiores ou iguais a zero."
                 )
 
-            if value > _LIMITE_DO_INTEIRO:
+            if medida > _LIMITE_DO_INTEIRO:
                 raise InvalidMetricError(
                     "As métricas precisam caber em "
                     f"{_LIMITE_DO_INTEIRO}."

@@ -10,11 +10,11 @@ class RegisterRequest(BaseModel):
 
     @field_validator("nome", mode="before")
     @classmethod
-    def normalize_name(cls, value):
-        if isinstance(value, str):
-            return value.strip()
+    def normalize_name(cls, nome):
+        if isinstance(nome, str):
+            return nome.strip()
 
-        return value
+        return nome
 
 
 class UserResponse(BaseModel):
