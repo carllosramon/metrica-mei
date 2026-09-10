@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -57,6 +57,7 @@ class SQLAlchemyMetricRepository:
         self._session.refresh(model)
 
         return self._to_domain(model)
+
     def get_by_id_and_content(
         self,
         metric_id: int,
@@ -73,6 +74,7 @@ class SQLAlchemyMetricRepository:
             return None
 
         return self._to_domain(model)
+
     def list_by_content(
         self,
         content_id: int,
@@ -92,10 +94,63 @@ class SQLAlchemyMetricRepository:
             statement
         ).all()
 
-        return [
-            self._to_domain(model)
-            for model in models
-        ]
+        medicoes = []
+
+        for model in models:
+            medicoes.append(self._to_domain(model))
+
+        return medicoes
+
+    def latest_by_contents(
+        self,
+        content_ids: list[int],
+    ) -> dict[int, Metric]:
+        if not content_ids:
+            return {}
+
+        # A numeração por conteúdo resolve tudo numa ida ao banco. Sem
+        # ela, o painel fazia uma consulta por conteúdo e trazia o
+        # histórico inteiro da conta para usar uma linha de cada.
+        posicao = (
+            func.row_number()
+            .over(
+                partition_by=MetricModel.conteudo_id,
+                order_by=(
+                    MetricModel.data_referencia.desc(),
+                    MetricModel.id.desc(),
+                ),
+            )
+            .label("posicao")
+        )
+
+        numeradas = (
+            select(
+                MetricModel.id.label("metrica_id"),
+                posicao,
+            )
+            .where(
+                MetricModel.conteudo_id.in_(content_ids)
+            )
+            .subquery()
+        )
+
+        primeiras = select(numeradas.c.metrica_id).where(
+            numeradas.c.posicao == 1
+        )
+
+        statement = select(MetricModel).where(
+            MetricModel.id.in_(primeiras)
+        )
+
+        models = self._session.scalars(statement).all()
+
+        mais_recentes: dict[int, Metric] = {}
+
+        for model in models:
+            mais_recentes[model.conteudo_id] = self._to_domain(model)
+
+        return mais_recentes
+
     def get_by_content_and_reference_date(
         self,
         content_id: int,
@@ -112,6 +167,7 @@ class SQLAlchemyMetricRepository:
             return None
 
         return self._to_domain(model)
+
     def update(
         self,
         metric: Metric,
@@ -144,6 +200,7 @@ class SQLAlchemyMetricRepository:
         self._session.refresh(model)
 
         return self._to_domain(model)
+
     def delete(
         self,
         metric: Metric,

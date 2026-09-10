@@ -20,19 +20,6 @@ class DashboardService:
         self._content_repository = content_repository
         self._metric_repository = metric_repository
 
-    def _latest_metric(
-        self,
-        content_id: int,
-    ):
-        # list_by_content já devolve em data_referencia DESC, id DESC, então
-        # o primeiro item é a medição mais recente do conteúdo.
-        metrics = self._metric_repository.list_by_content(content_id)
-
-        if not metrics:
-            return None
-
-        return metrics[0]
-
     def _measured_contents(
         self,
         contents,
@@ -40,10 +27,21 @@ class DashboardService:
         # Cada conteúdo entra nos totais uma única vez, pela medição mais
         # recente: os snapshots são cumulativos, e somar o histórico inteiro
         # contaria de novo tudo o que já estava nas medições anteriores.
+        identificadores = []
+
+        for content in contents:
+            identificadores.append(content.id)
+
+        medicao_do_conteudo = (
+            self._metric_repository.latest_by_contents(
+                identificadores
+            )
+        )
+
         measured = []
 
         for content in contents:
-            metric = self._latest_metric(content.id)
+            metric = medicao_do_conteudo.get(content.id)
 
             if metric is None:
                 continue

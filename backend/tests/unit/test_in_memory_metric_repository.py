@@ -255,3 +255,45 @@ def test_delete_removes_metric():
     )
 
     assert loaded is None
+
+
+def test_latest_by_contents_picks_the_most_recent_of_each():
+    repository = InMemoryMetricRepository()
+
+    hoje = date.today()
+
+    def criar(conteudo_id, data_referencia, alcance):
+        return repository.create(
+            Metric(
+                id=None,
+                conteudo_id=conteudo_id,
+                visualizacoes=alcance * 2,
+                curtidas=10,
+                comentarios=1,
+                compartilhamentos=1,
+                alcance=alcance,
+                data_referencia=data_referencia,
+                criado_em=datetime.now(timezone.utc),
+            )
+        )
+
+    criar(1, hoje - timedelta(days=2), 100)
+    criar(1, hoje, 300)
+    criar(1, hoje - timedelta(days=1), 200)
+    criar(2, hoje - timedelta(days=5), 50)
+
+    mais_recentes = repository.latest_by_contents([1, 2, 3])
+
+    # A ordem de inserção não é a ordem das datas: o que decide é a data
+    # de referência, como no repositório do SQLAlchemy.
+    assert mais_recentes[1].alcance == 300
+    assert mais_recentes[2].alcance == 50
+
+    # Conteúdo sem medição não aparece no resultado.
+    assert set(mais_recentes) == {1, 2}
+
+
+def test_latest_by_contents_with_no_ids_returns_empty():
+    repository = InMemoryMetricRepository()
+
+    assert repository.latest_by_contents([]) == {}

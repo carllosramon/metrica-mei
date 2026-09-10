@@ -41,12 +41,32 @@ class InMemoryMetricRepository:
 
         return sorted(
             metrics,
-            key=lambda metric: (
-                metric.data_referencia,
-                metric.id or 0,
-            ),
+            key=self._ordem,
             reverse=True,
         )
+
+    @staticmethod
+    def _ordem(metric: Metric) -> tuple:
+        return (metric.data_referencia, metric.id or 0)
+
+    def latest_by_contents(
+        self,
+        content_ids: list[int],
+    ) -> dict[int, Metric]:
+        procurados = set(content_ids)
+
+        mais_recentes: dict[int, Metric] = {}
+
+        for metric in self._metrics.values():
+            if metric.conteudo_id not in procurados:
+                continue
+
+            atual = mais_recentes.get(metric.conteudo_id)
+
+            if atual is None or self._ordem(metric) > self._ordem(atual):
+                mais_recentes[metric.conteudo_id] = metric
+
+        return mais_recentes
 
     def get_by_id_and_content(
         self,

@@ -19,6 +19,24 @@ class MetricRepository(Protocol):
         self,
         content_id: int,
     ) -> list[Metric]:
+        """Devolve as medições do conteúdo, da mais recente para a mais
+        antiga por data de referência, com desempate por identificador."""
+        ...
+
+    def latest_by_contents(
+        self,
+        content_ids: list[int],
+    ) -> dict[int, Metric]:
+        """Devolve a medição mais recente de cada conteúdo pedido.
+
+        Mais recente é a de maior data de referência, com desempate pelo
+        maior identificador. Conteúdo sem medição não aparece no
+        resultado.
+
+        O painel precisa de uma medição por conteúdo, e pedir o histórico
+        de cada um custava uma consulta por conteúdo e trazia todas as
+        medições da conta para descartar quase todas.
+        """
         ...
 
     def get_by_id_and_content(
