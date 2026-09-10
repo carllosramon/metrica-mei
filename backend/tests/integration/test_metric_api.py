@@ -439,6 +439,32 @@ def test_create_metric_rejects_negative_value(
     }
 
 
+def test_create_metric_rejects_value_above_integer_limit(
+    client,
+):
+    headers = authenticated_headers(client)
+    content = create_content(
+        client,
+        headers,
+    )
+
+    # As colunas são Integer, 32 bits no PostgreSQL. Sem o teto no
+    # serviço, este valor estourava no driver e virava 500.
+    payload = metric_payload()
+    payload["visualizacoes"] = 2_147_483_648
+
+    response = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=payload,
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "Dados da métrica inválidos."
+    }
+
+
 def test_create_metric_rejects_reference_date_before_publication(
     client,
 ):

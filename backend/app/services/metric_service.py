@@ -19,6 +19,10 @@ _METRIC_VALUE_FIELDS = (
     "alcance",
 )
 
+# As colunas são Integer, 32 bits no PostgreSQL. Acima disso o driver
+# estoura na gravação e o usuário recebe 500 em vez de 422.
+_LIMITE_DO_INTEIRO = 2_147_483_647
+
 _IMMUTABLE_FIELDS = (
     "id",
     "conteudo_id",
@@ -88,6 +92,12 @@ class MetricService:
                 raise InvalidMetricError(
                     "As métricas devem ser inteiras "
                     "e maiores ou iguais a zero."
+                )
+
+            if value > _LIMITE_DO_INTEIRO:
+                raise InvalidMetricError(
+                    "As métricas precisam caber em "
+                    f"{_LIMITE_DO_INTEIRO}."
                 )
 
     @staticmethod
