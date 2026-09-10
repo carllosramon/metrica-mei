@@ -48,7 +48,11 @@ Concentra as regras de negócio e os casos de uso da aplicação. Essa camada n�
 
 Abstrai o acesso aos dados. Os Services dependem de contratos de Repository, permitindo utilizar diferentes implementações de persistência sem alterar as regras de negócio.
 
-O projeto utiliza tanto Repositories em memória, principalmente nos testes unitários, quanto implementações com SQLAlchemy.
+A aplicação usa as implementações com SQLAlchemy. Os testes unitários usam dublês em memória, que vivem em `tests/dubles` e respondem com a mesma semântica dos reais, incluindo posse, unicidade e exclusão em cascata. Onde o dublê fosse mais permissivo, o teste aprovaria comportamento que a aplicação não tem.
+
+### Tradução de erros
+
+Os erros de domínio viram resposta HTTP num registro único, em `app/erros.py`, e não em cada endpoint. Assim um endpoint novo não precisa lembrar de traduzir, e cada erro tem uma resposta só.
 
 ## Tecnologias
 
@@ -94,8 +98,10 @@ backend/
 │   ├── services/
 │   ├── config.py
 │   ├── dependencies.py
+│   ├── erros.py
 │   └── main.py
 ├── tests/
+│   ├── dubles/
 │   ├── integration/
 │   └── unit/
 ├── alembic.ini
@@ -341,7 +347,7 @@ npm test
 ```
 
 ```text
-96 testes passando
+108 testes passando
 ```
 
 Com medição de cobertura:
@@ -351,9 +357,9 @@ npm run test:coverage
 ```
 
 ```text
-Statements   : 90.97%
-Branches     : 79.60%
-Functions    : 90.90%
+Statements   : 91.24%
+Branches     : 82.72%
+Functions    : 92.53%
 Lines        : 91.58%
 ```
 
@@ -618,7 +624,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-268 testes passando
+292 testes passando
 ```
 
 Com medição de cobertura:
@@ -629,7 +635,7 @@ python -m coverage report
 ```
 
 ```text
-1023 instruções, 9 sem cobrir, 99%
+960 instruções, 13 sem cobrir, 99%
 ```
 
 O piso configurado no `.coveragerc` é 99, o valor medido arredondado para
