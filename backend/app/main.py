@@ -12,6 +12,7 @@ from app.controllers.dashboard_controller import (
 from app.controllers.metric_controller import (
     router as metric_router,
 )
+from app.security.jwt import TokenService
 
 
 _DESCRICAO = """
@@ -71,11 +72,15 @@ _GRUPOS = [
 
 
 def verificar_configuracao(settings: Settings) -> None:
-    # Sem o segredo a API subia, respondia no /health e só falhava no
-    # primeiro login, longe de quem estava olhando a subida. Recusar
-    # aqui faz o erro aparecer no lugar certo.
-    if not settings.jwt_secret:
-        raise RuntimeError("JWT_SECRET não configurado.")
+    # Sem um segredo à altura a API subia, respondia no /health e só
+    # falhava no primeiro login, longe de quem estava olhando a subida.
+    # Construir o serviço de token aqui faz a exigência dele valer já na
+    # subida, com a mesma mensagem.
+    TokenService(
+        settings.jwt_secret,
+        settings.jwt_algorithm,
+        settings.jwt_expires_minutes,
+    )
 
 
 @asynccontextmanager

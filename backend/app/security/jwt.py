@@ -4,13 +4,29 @@ import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 
 
+TAMANHO_MINIMO_DO_SEGREDO = 32
+
+
 class TokenService:
     def __init__(
         self,
-        secret: str,
+        secret: str | None,
         algorithm: str = "HS256",
         expires_minutes: int = 30,
     ):
+        # O segredo assina todo token. Vazio ou curto, qualquer um forjaria
+        # um token para qualquer conta. A exigência mora aqui, e não só na
+        # subida da aplicação, para valer em todo caminho que constrói o
+        # serviço, inclusive os que não passam pelo lifespan.
+        if (
+            secret is None
+            or len(secret.strip()) < TAMANHO_MINIMO_DO_SEGREDO
+        ):
+            raise ValueError(
+                "JWT_SECRET precisa ter ao menos "
+                f"{TAMANHO_MINIMO_DO_SEGREDO} caracteres."
+            )
+
         self._secret = secret
         self._algorithm = algorithm
         self._expires_minutes = expires_minutes
