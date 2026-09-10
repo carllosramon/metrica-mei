@@ -134,6 +134,30 @@ class MetricService:
                 "conteúdo nesta data."
             )
 
+    def _conflito_ao_gravar(
+        self,
+        content_id: int,
+        user_id: int,
+    ) -> Exception:
+        # O banco não diz de forma portátil qual constraint falhou. Se o
+        # conteúdo sumiu entre a checagem de posse e a gravação, a falha foi
+        # da chave estrangeira, e o usuário precisa ouvir "não encontrado",
+        # não "medição duplicada" de um conteúdo que já não existe.
+        content = self._content_repository.get_by_id_and_user(
+            content_id,
+            user_id,
+        )
+
+        if content is None:
+            return MetricContentNotFoundError(
+                "Conteúdo não encontrado."
+            )
+
+        return DuplicateMetricError(
+            "Já existe uma métrica para este "
+            "conteúdo nesta data."
+        )
+
     @staticmethod
     def _with_engagement(
         metric: Metric,
@@ -211,10 +235,7 @@ class MetricService:
                 metric
             )
         except MetricPersistenceConflictError as exc:
-            raise DuplicateMetricError(
-                "Já existe uma métrica para este "
-                "conteúdo nesta data."
-            ) from exc
+            raise self._conflito_ao_gravar(content_id, user_id) from exc
 
         return self._with_engagement(created)
 
@@ -341,10 +362,7 @@ class MetricService:
                 updated
             )
         except MetricPersistenceConflictError as exc:
-            raise DuplicateMetricError(
-                "Já existe uma métrica para este "
-                "conteúdo nesta data."
-            ) from exc
+            raise self._conflito_ao_gravar(content_id, user_id) from exc
 
         # A métrica pode ter sido excluída entre a leitura acima e
         # esta gravação. Devolver os valores enviados diria ao
