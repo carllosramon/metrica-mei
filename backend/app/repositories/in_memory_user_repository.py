@@ -1,6 +1,9 @@
 from dataclasses import replace
 
 from app.domain.user import User
+from app.repositories.user_repository import (
+    UserPersistenceConflictError,
+)
 
 
 class InMemoryUserRepository:
@@ -18,6 +21,12 @@ class InMemoryUserRepository:
         return self._users.get(user_id)
 
     def create(self, user: User) -> User:
+        # O e-mail é único no banco, e o dublê precisa recusar o repetido
+        # do mesmo jeito. Permitindo, ele guardava duas contas com o mesmo
+        # e-mail e a segunda ficava inalcançável pelo login.
+        if self.get_by_email(user.email) is not None:
+            raise UserPersistenceConflictError
+
         stored_user = replace(user, id=self._next_id)
 
         self._users[self._next_id] = stored_user

@@ -98,13 +98,27 @@ class InMemoryMetricRepository:
 
         return None
 
+    def apagar_do_conteudo(self, content_id: int) -> None:
+        # Emula o cascade do banco, acionado pelo dublê de conteúdo quando
+        # o conteúdo é excluído.
+        for metric_id in list(self._metrics):
+            if self._metrics[metric_id].conteudo_id == content_id:
+                del self._metrics[metric_id]
+
     def update(
         self,
         metric: Metric,
     ) -> Metric | None:
         # Métrica excluída não volta por uma atualização: sem esta
-        # verificação, gravar abaixo a recriaria.
-        if metric.id not in self._metrics:
+        # verificação, gravar abaixo a recriaria. E a métrica não troca de
+        # conteúdo por uma atualização, porque o repositório do SQLAlchemy
+        # filtra por id e conteúdo.
+        guardada = self._metrics.get(metric.id)
+
+        if guardada is None:
+            return None
+
+        if guardada.conteudo_id != metric.conteudo_id:
             return None
 
         existing = self.get_by_content_and_reference_date(
