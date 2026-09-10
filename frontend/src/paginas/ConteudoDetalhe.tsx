@@ -81,18 +81,32 @@ export function ConteudoDetalhe() {
   // as disparadas depois de salvar ou excluir. Antes só a do efeito tinha,
   // e uma recarga pós-exclusão podia chegar com a tela já em outro
   // conteúdo e vesti-la com os dados do anterior.
-  const pedidoDeCarga = useRef(0)
+  const pedidoDeConteudo = useRef(0)
+  const pedidoDeMedicoes = useRef(0)
 
-  const carregar = useCallback(async () => {
+  const tratarFalhaDeCarga = useCallback(
+    (falha: unknown, alternativa: string) => {
+      // Conteúdo inexistente ou de outro usuário não tem tela própria:
+      // a lista é o único lugar coerente para devolver o usuário.
+      if (falha instanceof ErroDaApi && falha.status === 404) {
+        navegar('/conteudos', { replace: true })
+        return
+      }
+
+      definirErro(mensagemDe(falha, alternativa))
+    },
+    [navegar],
+  )
+
+  const carregarConteudo = useCallback(async () => {
     if (token === null) {
       return
     }
 
-    const aindaVale = reservarPedido(pedidoDeCarga)
+    const aindaVale = reservarPedido(pedidoDeConteudo)
 
     try {
       const encontrado = await buscarConteudo(token, identificador)
-      const medicoes = await listarMetricas(token, identificador)
 
       if (!aindaVale()) {
         return
@@ -106,34 +120,52 @@ export function ConteudoDetalhe() {
         data_publicacao: encontrado.data_publicacao,
         url_publicacao: encontrado.url_publicacao ?? '',
       })
-      definirMetricas(medicoes)
 
-      // Dados novos na tela, confirmações antigas fora. Uma linha armada
-      // que sobrevivesse à recarga excluiria no clique seguinte sem a
-      // segunda etapa que é a razão de ela existir.
-      definirMedicaoConfirmada(null)
+      // Dados novos na tela, confirmação antiga fora. Um botão armado que
+      // sobrevivesse à recarga excluiria no clique seguinte sem a segunda
+      // etapa que é a razão de ele existir.
       definirConfirmandoExclusao(false)
     } catch (falha) {
       if (!aindaVale()) {
         return
       }
 
-      // Conteúdo inexistente ou de outro usuário não tem tela própria:
-      // a lista é o único lugar coerente para devolver o usuário.
-      if (falha instanceof ErroDaApi && falha.status === 404) {
-        navegar('/conteudos', { replace: true })
+      tratarFalhaDeCarga(falha, 'Não foi possível carregar o conteúdo.')
+    }
+  }, [token, identificador, tratarFalhaDeCarga])
+
+  // Salvar ou excluir uma medição recarrega só as medições. Recarregar o
+  // conteúdo junto reescrevia o formulário e apagava, em silêncio, o que
+  // o usuário tinha digitado ali e ainda não salvado.
+  const carregarMedicoes = useCallback(async () => {
+    if (token === null) {
+      return
+    }
+
+    const aindaVale = reservarPedido(pedidoDeMedicoes)
+
+    try {
+      const medicoes = await listarMetricas(token, identificador)
+
+      if (!aindaVale()) {
         return
       }
 
-      definirErro(
-        mensagemDe(falha, 'Não foi possível carregar o conteúdo.'),
-      )
+      definirMetricas(medicoes)
+      definirMedicaoConfirmada(null)
+    } catch (falha) {
+      if (!aindaVale()) {
+        return
+      }
+
+      tratarFalhaDeCarga(falha, 'Não foi possível carregar as medições.')
     }
-  }, [token, identificador, navegar])
+  }, [token, identificador, tratarFalhaDeCarga])
 
   useEffect(() => {
-    void carregar()
-  }, [carregar])
+    void carregarConteudo()
+    void carregarMedicoes()
+  }, [carregarConteudo, carregarMedicoes])
 
   async function salvarConteudo(evento: FormEvent) {
     evento.preventDefault()
@@ -151,7 +183,7 @@ export function ConteudoDetalhe() {
         url_publicacao: urlOuNulo(dadosDoConteudo.url_publicacao),
       })
 
-      await carregar()
+      await carregarConteudo()
     } catch (falha) {
       definirErro(mensagemDe(falha, 'Não foi possível salvar o conteúdo.'))
     } finally {
@@ -223,7 +255,7 @@ export function ConteudoDetalhe() {
       }
 
       definirFormularioAberto(false)
-      await carregar()
+      await carregarMedicoes()
     } catch (falha) {
       // A unicidade por data é o erro que o usuário mais encontra, e a
       // mensagem genérica não diria o que fazer a respeito.
@@ -246,8 +278,7 @@ export function ConteudoDetalhe() {
 
     try {
       await excluirMetrica(token, identificador, metricaId)
-      definirMedicaoConfirmada(null)
-      await carregar()
+      await carregarMedicoes()
     } catch (falha) {
       definirErro(mensagemDe(falha, 'Não foi possível excluir a medição.'))
     }

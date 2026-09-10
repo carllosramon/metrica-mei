@@ -487,23 +487,26 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
   it('recarga atrasada de uma exclusão não veste o outro conteúdo', async () => {
     const usuario = userEvent.setup()
 
-    // A primeira carga do 7 responde na hora. A recarga depois da exclusão
-    // fica presa até o teste soltar, já com a tela no 8.
-    const recargaDoSete = adiar<Conteudo>()
+    // As medições do 7 respondem na hora na primeira carga. A recarga
+    // depois da exclusão fica presa até o teste soltar, já com a tela no 8,
+    // que não tem medição nenhuma.
+    const recargaDoSete = adiar<Metrica[]>()
     let cargasDoSete = 0
 
-    vi.mocked(buscarConteudo).mockImplementation(async (_token, id) => {
+    vi.mocked(buscarConteudo).mockImplementation(async (_token, id) =>
+      id === 8
+        ? { ...conteudo, id: 8, titulo: 'Carrossel de dicas' }
+        : conteudo,
+    )
+    vi.mocked(listarMetricas).mockImplementation(async (_token, id) => {
       if (id === 8) {
-        return { ...conteudo, id: 8, titulo: 'Carrossel de dicas' }
+        return []
       }
 
       cargasDoSete += 1
 
-      return cargasDoSete === 1 ? conteudo : recargaDoSete.promessa
+      return cargasDoSete === 1 ? [medicao] : recargaDoSete.promessa
     })
-    vi.mocked(listarMetricas).mockImplementation(async (_token, id) =>
-      id === 7 ? [medicao] : [],
-    )
     vi.mocked(excluirMetrica).mockResolvedValue(undefined)
 
     render(
@@ -535,15 +538,50 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
       await screen.findByRole('heading', { name: 'Carrossel de dicas' }),
     ).toBeInTheDocument()
 
-    // A recarga do 7 chega agora. Sem a guarda, ela vestiria a tela do 8
-    // com o título do 7, e o próximo salvar gravaria no conteúdo errado.
+    expect(
+      await screen.findByText(/Nenhuma medição registrada/),
+    ).toBeInTheDocument()
+
+    // A recarga do 7 chega agora. Sem a guarda, ela poria a medição do 7 na
+    // tabela do 8, e o próximo editar corrigiria a medição do conteúdo
+    // errado.
     await act(async () => {
-      recargaDoSete.resolver(conteudo)
+      recargaDoSete.resolver([medicao])
     })
 
     expect(
       screen.getByRole('heading', { name: 'Carrossel de dicas' }),
     ).toBeInTheDocument()
-    expect(screen.queryByText('Reels sobre preço')).toBeNull()
+    expect(screen.queryByRole('cell', { name: '22/08/2026' })).toBeNull()
+  })
+
+  it('salvar uma medição preserva a edição do conteúdo', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(criarMetrica).mockResolvedValue(medicao)
+
+    renderizar()
+
+    const titulo = await screen.findByLabelText('Título')
+
+    await usuario.type(titulo, ' revisado')
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'Registrar medição' }),
+    )
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar medição' }),
+    )
+
+    await waitFor(() => {
+      expect(criarMetrica).toHaveBeenCalledTimes(1)
+    })
+
+    // A recarga que segue o salvar é só das medições. O que foi digitado
+    // no conteúdo e ainda não salvo continua no campo.
+    expect(titulo).toHaveValue('Reels sobre preço revisado')
+    expect(buscarConteudo).toHaveBeenCalledTimes(1)
   })
 })
