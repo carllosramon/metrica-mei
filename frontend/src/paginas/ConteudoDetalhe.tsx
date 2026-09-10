@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -16,6 +16,7 @@ import {
 } from '../api/metricas'
 import type { Conteudo, Metrica } from '../api/tipos'
 import { useAutenticacao } from '../autenticacao/useAutenticacao'
+import { reservarPedido } from '../carregamento'
 import { EvolucaoDoEngajamento } from '../componentes/EvolucaoDoEngajamento'
 import { dataDeHoje } from '../formatacao'
 import estilos from './ConteudoDetalhe.module.css'
@@ -76,60 +77,56 @@ export function ConteudoDetalhe() {
     number | null
   >(null)
 
-  const carregar = useCallback(
-    async (aindaVale: () => boolean = () => true) => {
-      if (token === null) {
+  // A guarda contra resposta atrasada vale para toda carga, a do efeito e
+  // as disparadas depois de salvar ou excluir. Antes só a do efeito tinha,
+  // e uma recarga pós-exclusão podia chegar com a tela já em outro
+  // conteúdo e vesti-la com os dados do anterior.
+  const pedidoDeCarga = useRef(0)
+
+  const carregar = useCallback(async () => {
+    if (token === null) {
+      return
+    }
+
+    const aindaVale = reservarPedido(pedidoDeCarga)
+
+    try {
+      const encontrado = await buscarConteudo(token, identificador)
+      const medicoes = await listarMetricas(token, identificador)
+
+      if (!aindaVale()) {
         return
       }
 
-      try {
-        const encontrado = await buscarConteudo(token, identificador)
-        const medicoes = await listarMetricas(token, identificador)
-
-        if (!aindaVale()) {
-          return
-        }
-
-        definirConteudo(encontrado)
-        definirDadosDoConteudo({
-          titulo: encontrado.titulo,
-          plataforma: encontrado.plataforma,
-          tipo: encontrado.tipo,
-          data_publicacao: encontrado.data_publicacao,
-          url_publicacao: encontrado.url_publicacao ?? '',
-        })
-        definirMetricas(medicoes)
-      } catch (falha) {
-        if (!aindaVale()) {
-          return
-        }
-
-        // Conteúdo inexistente ou de outro usuário não tem tela própria:
-        // a lista é o único lugar coerente para devolver o usuário.
-        if (falha instanceof ErroDaApi && falha.status === 404) {
-          navegar('/conteudos', { replace: true })
-          return
-        }
-
-        definirErro(
-          mensagemDe(falha, 'Não foi possível carregar o conteúdo.'),
-        )
+      definirConteudo(encontrado)
+      definirDadosDoConteudo({
+        titulo: encontrado.titulo,
+        plataforma: encontrado.plataforma,
+        tipo: encontrado.tipo,
+        data_publicacao: encontrado.data_publicacao,
+        url_publicacao: encontrado.url_publicacao ?? '',
+      })
+      definirMetricas(medicoes)
+    } catch (falha) {
+      if (!aindaVale()) {
+        return
       }
-    },
-    [token, identificador, navegar],
-  )
+
+      // Conteúdo inexistente ou de outro usuário não tem tela própria:
+      // a lista é o único lugar coerente para devolver o usuário.
+      if (falha instanceof ErroDaApi && falha.status === 404) {
+        navegar('/conteudos', { replace: true })
+        return
+      }
+
+      definirErro(
+        mensagemDe(falha, 'Não foi possível carregar o conteúdo.'),
+      )
+    }
+  }, [token, identificador, navegar])
 
   useEffect(() => {
-    // Navegar depressa dispara o efeito de novo antes de a primeira
-    // resposta chegar. Sem descartar a anterior, ela chegaria depois e
-    // sobrescreveria a tela com dados que já não são os pedidos.
-    let descartado = false
-
-    void carregar(() => !descartado)
-
-    return () => {
-      descartado = true
-    }
+    void carregar()
   }, [carregar])
 
   async function salvarConteudo(evento: FormEvent) {

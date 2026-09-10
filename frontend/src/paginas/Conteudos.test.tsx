@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -7,6 +7,7 @@ import { criarConteudo, listarConteudos } from '../api/conteudos'
 import type { Conteudo } from '../api/tipos'
 import { ContextoAutenticacao } from '../autenticacao/contexto'
 import type { ValorDaAutenticacao } from '../autenticacao/contexto'
+import { adiar } from '../testes/adiar'
 import { Conteudos } from './Conteudos'
 
 vi.mock('../api/conteudos', () => ({
@@ -113,5 +114,39 @@ describe('Conteudos', () => {
     expect(
       await screen.findByText('Não foi possível carregar os conteúdos.'),
     ).toBeInTheDocument()
+  })
+
+  it('a carga inicial lenta não apaga o conteúdo recém-criado', async () => {
+    const usuario = userEvent.setup()
+
+    // A primeira listagem fica presa. O cadastro dispara uma segunda, que
+    // responde antes, e só depois a primeira chega, já velha.
+    const cargaInicial = adiar<Conteudo[]>()
+
+    vi.mocked(listarConteudos)
+      .mockReturnValueOnce(cargaInicial.promessa)
+      .mockResolvedValue([reels])
+    vi.mocked(criarConteudo).mockResolvedValue(reels)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Novo conteúdo' }),
+    )
+    await usuario.type(screen.getByLabelText('Título'), 'Reels sobre preço')
+    await usuario.type(screen.getByLabelText('Plataforma'), 'Instagram')
+    await usuario.type(screen.getByLabelText('Tipo'), 'Reels')
+    await usuario.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    expect(await screen.findByText('Reels sobre preço')).toBeInTheDocument()
+
+    await act(async () => {
+      cargaInicial.resolver([])
+    })
+
+    // A lista vazia era a resposta certa quando foi pedida, e a errada
+    // agora. O conteúdo criado precisa continuar na tela.
+    expect(screen.getByText('Reels sobre preço')).toBeInTheDocument()
+    expect(screen.queryByText(/Nenhum conteúdo cadastrado/)).toBeNull()
   })
 })

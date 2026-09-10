@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -6,6 +6,7 @@ import { ErroDaApi } from '../api/cliente'
 import { criarConteudo, listarConteudos } from '../api/conteudos'
 import type { Conteudo } from '../api/tipos'
 import { useAutenticacao } from '../autenticacao/useAutenticacao'
+import { reservarPedido } from '../carregamento'
 import { Campo } from '../componentes/Campo'
 import { dataDeHoje, formatarData } from '../formatacao'
 import estilos from './Conteudos.module.css'
@@ -27,44 +28,39 @@ export function Conteudos() {
   const [formulario, definirFormulario] = useState(FORMULARIO_VAZIO)
   const [enviando, definirEnviando] = useState(false)
 
-  const carregar = useCallback(
-    async (aindaVale: () => boolean = () => true) => {
-      if (token === null) {
+  // A carga inicial lenta podia responder depois da recarga que segue um
+  // cadastro e apagar da tela o conteúdo recém-criado. Com o contador, a
+  // última carga pedida é a única que escreve.
+  const pedidoDeCarga = useRef(0)
+
+  const carregar = useCallback(async () => {
+    if (token === null) {
+      return
+    }
+
+    const aindaVale = reservarPedido(pedidoDeCarga)
+
+    try {
+      const encontrados = await listarConteudos(token)
+
+      if (aindaVale()) {
+        definirConteudos(encontrados)
+      }
+    } catch (falha) {
+      if (!aindaVale()) {
         return
       }
 
-      try {
-        const encontrados = await listarConteudos(token)
-
-        if (aindaVale()) {
-          definirConteudos(encontrados)
-        }
-      } catch (falha) {
-        if (!aindaVale()) {
-          return
-        }
-
-        definirErro(
-          falha instanceof ErroDaApi
-            ? falha.message
-            : 'Não foi possível carregar os conteúdos.',
-        )
-      }
-    },
-    [token],
-  )
+      definirErro(
+        falha instanceof ErroDaApi
+          ? falha.message
+          : 'Não foi possível carregar os conteúdos.',
+      )
+    }
+  }, [token])
 
   useEffect(() => {
-    // Navegar depressa dispara o efeito de novo antes de a primeira
-    // resposta chegar. Sem descartar a anterior, ela chegaria depois e
-    // sobrescreveria a tela com dados que já não são os pedidos.
-    let descartado = false
-
-    void carregar(() => !descartado)
-
-    return () => {
-      descartado = true
-    }
+    void carregar()
   }, [carregar])
 
   function alterar(campo: keyof typeof FORMULARIO_VAZIO, valor: string) {

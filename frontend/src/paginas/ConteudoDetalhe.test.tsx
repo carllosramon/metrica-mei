@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   MemoryRouter,
@@ -23,6 +23,7 @@ import {
 import type { Conteudo, Metrica } from '../api/tipos'
 import { ContextoAutenticacao } from '../autenticacao/contexto'
 import type { ValorDaAutenticacao } from '../autenticacao/contexto'
+import { adiar } from '../testes/adiar'
 import { ConteudoDetalhe } from './ConteudoDetalhe'
 
 vi.mock('../api/conteudos', () => ({
@@ -344,21 +345,6 @@ describe('ConteudoDetalhe', () => {
   })
 })
 
-type Adiado<T> = {
-  promessa: Promise<T>
-  resolver: (valor: T) => void
-}
-
-function adiar<T>(): Adiado<T> {
-  let resolver: (valor: T) => void = () => {}
-
-  const promessa = new Promise<T>((cumprir) => {
-    resolver = cumprir
-  })
-
-  return { promessa, resolver }
-}
-
 function AtalhoParaOutroConteudo() {
   const navegar = useNavigate()
 
@@ -409,6 +395,69 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
       await screen.findByRole('heading', { name: 'Carrossel de dicas' }),
     ).toBeInTheDocument()
 
+    expect(screen.queryByText('Reels sobre preço')).toBeNull()
+  })
+
+  it('recarga atrasada de uma exclusão não veste o outro conteúdo', async () => {
+    const usuario = userEvent.setup()
+
+    // A primeira carga do 7 responde na hora. A recarga depois da exclusão
+    // fica presa até o teste soltar, já com a tela no 8.
+    const recargaDoSete = adiar<Conteudo>()
+    let cargasDoSete = 0
+
+    vi.mocked(buscarConteudo).mockImplementation(async (_token, id) => {
+      if (id === 8) {
+        return { ...conteudo, id: 8, titulo: 'Carrossel de dicas' }
+      }
+
+      cargasDoSete += 1
+
+      return cargasDoSete === 1 ? conteudo : recargaDoSete.promessa
+    })
+    vi.mocked(listarMetricas).mockImplementation(async (_token, id) =>
+      id === 7 ? [medicao] : [],
+    )
+    vi.mocked(excluirMetrica).mockResolvedValue(undefined)
+
+    render(
+      <ContextoAutenticacao.Provider value={autenticacao}>
+        <MemoryRouter initialEntries={['/conteudos/7']}>
+          <AtalhoParaOutroConteudo />
+          <Routes>
+            <Route
+              path="/conteudos/:conteudoId"
+              element={<ConteudoDetalhe />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </ContextoAutenticacao.Provider>,
+    )
+
+    const tabela = await screen.findByRole('table')
+
+    await usuario.click(within(tabela).getByRole('button', { name: 'Excluir' }))
+    await usuario.click(
+      within(tabela).getByRole('button', { name: 'Confirmar' }),
+    )
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'ir para o outro' }),
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'Carrossel de dicas' }),
+    ).toBeInTheDocument()
+
+    // A recarga do 7 chega agora. Sem a guarda, ela vestiria a tela do 8
+    // com o título do 7, e o próximo salvar gravaria no conteúdo errado.
+    await act(async () => {
+      recargaDoSete.resolver(conteudo)
+    })
+
+    expect(
+      screen.getByRole('heading', { name: 'Carrossel de dicas' }),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Reels sobre preço')).toBeNull()
   })
 })
