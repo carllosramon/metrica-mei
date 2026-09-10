@@ -17,7 +17,11 @@ class DashboardContent:
 @dataclass(slots=True)
 class DashboardPlatform:
     plataforma: str
+    # Os dois contadores da rede, na mesma leitura que o topo do painel
+    # faz para a conta inteira. Um só, contando apenas os medidos, era
+    # lido como "quantos conteúdos tenho nesta rede" e enganava.
     total_conteudos: int
+    conteudos_com_metricas: int
     total_visualizacoes: int
     total_curtidas: int
     total_comentarios: int

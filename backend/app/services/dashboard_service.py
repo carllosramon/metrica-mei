@@ -53,6 +53,23 @@ class DashboardService:
         return measured
 
     @staticmethod
+    def _totais(metrics) -> dict[str, int]:
+        # Os mesmos cinco totais servem à conta inteira e a cada rede. Somar
+        # em dois lugares deixava os números do topo e da tabela livres para
+        # divergirem quando um deles mudasse.
+        return {
+            "visualizacoes": sum(
+                metric.visualizacoes for metric in metrics
+            ),
+            "curtidas": sum(metric.curtidas for metric in metrics),
+            "comentarios": sum(metric.comentarios for metric in metrics),
+            "compartilhamentos": sum(
+                metric.compartilhamentos for metric in metrics
+            ),
+            "alcance": sum(metric.alcance for metric in metrics),
+        }
+
+    @staticmethod
     def _sum_engagement(metrics) -> float | None:
         return calculate_engagement(
             curtidas=sum(metric.curtidas for metric in metrics),
@@ -100,18 +117,33 @@ class DashboardService:
     @classmethod
     def _platform_performance(
         cls,
+        contents,
         measured,
     ) -> list[DashboardPlatform]:
+        medicao_do_conteudo = {
+            content.id: metric for content, metric in measured
+        }
+
         # A plataforma é texto livre digitado pelo usuário, então "Instagram"
         # e "instagram" precisam cair no mesmo grupo — senão o painel
         # mostraria a mesma rede duas vezes por diferença de maiúscula.
         grupos: dict[str, list] = {}
+        contagens: dict[str, int] = {}
         grafias: dict[str, tuple[int, str]] = {}
 
-        for content, metric in measured:
+        # O laço percorre todos os conteúdos, e não só os medidos: uma rede
+        # onde o usuário publicou e ainda não mediu precisa aparecer zerada
+        # em vez de desaparecer do painel.
+        for content in contents:
             chave = content.plataforma.casefold()
 
-            grupos.setdefault(chave, []).append(metric)
+            contagens[chave] = contagens.get(chave, 0) + 1
+            grupos.setdefault(chave, [])
+
+            metric = medicao_do_conteudo.get(content.id)
+
+            if metric is not None:
+                grupos[chave].append(metric)
 
             # Entre grafias concorrentes vale a do conteúdo cadastrado
             # primeiro, para que o rótulo não mude conforme a ordenação da
@@ -124,25 +156,18 @@ class DashboardService:
         desempenho = []
 
         for chave, metrics in grupos.items():
+            totais = cls._totais(metrics)
+
             desempenho.append(
                 DashboardPlatform(
                     plataforma=grafias[chave][1],
-                    total_conteudos=len(metrics),
-                    total_visualizacoes=sum(
-                        metric.visualizacoes for metric in metrics
-                    ),
-                    total_curtidas=sum(
-                        metric.curtidas for metric in metrics
-                    ),
-                    total_comentarios=sum(
-                        metric.comentarios for metric in metrics
-                    ),
-                    total_compartilhamentos=sum(
-                        metric.compartilhamentos for metric in metrics
-                    ),
-                    total_alcance=sum(
-                        metric.alcance for metric in metrics
-                    ),
+                    total_conteudos=contagens[chave],
+                    conteudos_com_metricas=len(metrics),
+                    total_visualizacoes=totais["visualizacoes"],
+                    total_curtidas=totais["curtidas"],
+                    total_comentarios=totais["comentarios"],
+                    total_compartilhamentos=totais["compartilhamentos"],
+                    total_alcance=totais["alcance"],
                     engajamento=cls._sum_engagement(metrics),
                 )
             )
@@ -166,28 +191,23 @@ class DashboardService:
 
         metrics = [metric for _, metric in measured]
 
-        total_visualizacoes = sum(
-            metric.visualizacoes for metric in metrics
-        )
-        total_curtidas = sum(metric.curtidas for metric in metrics)
-        total_comentarios = sum(metric.comentarios for metric in metrics)
-        total_compartilhamentos = sum(
-            metric.compartilhamentos for metric in metrics
-        )
-        total_alcance = sum(metric.alcance for metric in metrics)
+        totais = self._totais(metrics)
 
         return Dashboard(
             total_conteudos=len(contents),
             conteudos_com_metricas=len(measured),
-            total_visualizacoes=total_visualizacoes,
-            total_curtidas=total_curtidas,
-            total_comentarios=total_comentarios,
-            total_compartilhamentos=total_compartilhamentos,
-            total_alcance=total_alcance,
+            total_visualizacoes=totais["visualizacoes"],
+            total_curtidas=totais["curtidas"],
+            total_comentarios=totais["comentarios"],
+            total_compartilhamentos=totais["compartilhamentos"],
+            total_alcance=totais["alcance"],
             # O índice da conta sai dos totais, e não da média dos índices
             # individuais: na média, um conteúdo de alcance 10 pesaria o
             # mesmo que um de alcance 50.000.
             engajamento_geral=self._sum_engagement(metrics),
-            desempenho_por_plataforma=self._platform_performance(measured),
+            desempenho_por_plataforma=self._platform_performance(
+                contents,
+                measured,
+            ),
             maiores_alcances=self._biggest_reaches(measured),
         )

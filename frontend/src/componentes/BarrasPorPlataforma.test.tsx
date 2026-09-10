@@ -11,6 +11,7 @@ function plataforma(
   return {
     plataforma: nome,
     total_conteudos: 1,
+    conteudos_com_metricas: 1,
     total_visualizacoes: total_alcance * 2,
     total_curtidas: 10,
     total_comentarios: 0,

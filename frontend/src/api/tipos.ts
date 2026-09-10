@@ -24,7 +24,10 @@ export type ConteudoDoRanking = {
 
 export type DesempenhoDaPlataforma = {
   plataforma: string
+  // Os dois contadores da rede, na mesma leitura que o topo do painel faz
+  // para a conta inteira.
   total_conteudos: number
+  conteudos_com_metricas: number
   total_visualizacoes: number
   total_curtidas: number
   total_comentarios: number

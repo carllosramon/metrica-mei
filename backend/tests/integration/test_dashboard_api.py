@@ -147,6 +147,7 @@ def test_dashboard_returns_consolidated_numbers(client):
     assert len(plataformas) == 1
     assert plataformas[0]["plataforma"] == "Instagram"
     assert plataformas[0]["total_conteudos"] == 2
+    assert plataformas[0]["conteudos_com_metricas"] == 2
     assert plataformas[0]["total_alcance"] == 2000
     assert plataformas[0]["engajamento"] == 8.55
 

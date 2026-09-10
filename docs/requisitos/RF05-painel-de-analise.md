@@ -62,9 +62,19 @@ Alcance total zero devolve nulo, pela mesma razão do RF04.
 
 ## 5. Desempenho por plataforma
 
-Para cada rede, os mesmos cinco totais mais a quantidade de conteúdos medidos e o índice consolidado daquela plataforma.
+Para cada rede, os mesmos cinco totais, os dois contadores de conteúdo e o índice consolidado daquela plataforma.
 
 Ordenado por alcance total decrescente: a rede onde o usuário alcança mais pessoas é a informação que ele procura primeiro.
+
+### Os dois contadores por rede
+
+`total_conteudos` conta todos os conteúdos da rede e `conteudos_com_metricas` conta os que já têm medição, na mesma leitura que a seção 4 faz para a conta inteira, e pela mesma razão registrada lá: o número de medidos sozinho, sob o rótulo de total, faria o usuário ler os totais baixos como mau desempenho quando a base de medição é que é pequena.
+
+### Rede sem medição aparece zerada
+
+Uma rede onde o usuário publicou e ainda não mediu entra na tabela com totais zero, `conteudos_com_metricas` zero e índice nulo. Omiti-la esconderia justamente a informação de que falta medir ali, e o usuário não teria como notar a ausência.
+
+Sem alcance para comparar, essas redes ficam por último na ordenação.
 
 ### Agrupamento ignora maiúsculas
 
@@ -131,22 +141,25 @@ Ausência de dados não é erro: é o estado inicial de toda conta recém-criada
 5. `engajamento_geral` é nulo quando o alcance total é zero;
 6. o desempenho por plataforma agrupa as redes ignorando diferença de maiúsculas;
 7. o desempenho por plataforma é ordenado por alcance decrescente;
-8. o ranking é ordenado por alcance decrescente e limitado a cinco itens;
-9. o ranking inclui conteúdo com alcance zero e exclui conteúdo sem medição;
-10. conteúdos de outros usuários não influenciam nenhum indicador;
-11. conta sem conteúdos recebe `200` com o painel zerado;
-12. requisição sem token válido recebe `401`;
-13. a interface apresenta as três seções, com estado vazio orientado.
+8. cada rede traz `total_conteudos` com todos os seus conteúdos e `conteudos_com_metricas` só com os medidos;
+9. rede sem nenhuma medição aparece na tabela zerada, com índice nulo, e por último na ordenação;
+10. o ranking é ordenado por alcance decrescente e limitado a cinco itens;
+11. o ranking inclui conteúdo com alcance zero e exclui conteúdo sem medição;
+12. conteúdos de outros usuários não influenciam nenhum indicador;
+13. conta sem conteúdos recebe `200` com o painel zerado;
+14. requisição sem token válido recebe `401`;
+15. a interface apresenta as três seções, com estado vazio orientado.
 
 ## 12. Rastreabilidade
 
 | Critério | Verificado em |
 |---|---|
-| 1 a 5, 9, 10 | `tests/unit/test_dashboard_service.py` |
+| 1 a 5, 11, 12 | `tests/unit/test_dashboard_service.py` |
 | 6, 7 | `tests/unit/test_dashboard_service.py` |
-| 8 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |
-| 11, 12 | `tests/integration/test_dashboard_api.py` |
-| 13 | `frontend/src/paginas/Painel.test.tsx`, `frontend/e2e/jornada.spec.ts` |
+| 8, 9 | `tests/unit/test_dashboard_service.py`, `frontend/src/paginas/Painel.test.tsx` |
+| 10 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |
+| 13, 14 | `tests/integration/test_dashboard_api.py` |
+| 15 | `frontend/src/paginas/Painel.test.tsx`, `frontend/e2e/jornada.spec.ts` |
 
 Requisitos relacionados: RF02 e RF03 (dados de origem), RF04 (fórmula reaproveitada), RF06 (isolamento), RNF01, RNF02, RNF03.
 

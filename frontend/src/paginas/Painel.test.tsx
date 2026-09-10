@@ -141,6 +141,7 @@ describe('Painel — desempenho por plataforma', () => {
         {
           plataforma: 'Instagram',
           total_conteudos: 2,
+          conteudos_com_metricas: 2,
           total_visualizacoes: 1500,
           total_curtidas: 100,
           total_comentarios: 10,
@@ -151,6 +152,7 @@ describe('Painel — desempenho por plataforma', () => {
         {
           plataforma: 'TikTok',
           total_conteudos: 1,
+          conteudos_com_metricas: 1,
           total_visualizacoes: 3000,
           total_curtidas: 100,
           total_comentarios: 20,
@@ -172,6 +174,49 @@ describe('Painel — desempenho por plataforma', () => {
     expect(
       screen.getByRole('img', { name: /Alcance por plataforma, em 2 redes/ }),
     ).toBeInTheDocument()
+  })
+
+  it('mostra quantos conteúdos da rede já têm medição', async () => {
+    renderizarPainel({
+      ...painelVazio,
+      total_conteudos: 4,
+      conteudos_com_metricas: 1,
+      desempenho_por_plataforma: [
+        {
+          plataforma: 'Instagram',
+          total_conteudos: 3,
+          conteudos_com_metricas: 1,
+          total_visualizacoes: 1000,
+          total_curtidas: 80,
+          total_comentarios: 10,
+          total_compartilhamentos: 10,
+          total_alcance: 800,
+          engajamento: 12.5,
+        },
+        {
+          plataforma: 'TikTok',
+          total_conteudos: 1,
+          conteudos_com_metricas: 0,
+          total_visualizacoes: 0,
+          total_curtidas: 0,
+          total_comentarios: 0,
+          total_compartilhamentos: 0,
+          total_alcance: 0,
+          engajamento: null,
+        },
+      ],
+    })
+
+    // "1" sozinho seria lido como o total da rede. Os dois números juntos
+    // dizem quanto falta medir.
+    expect(
+      await screen.findByRole('cell', { name: '1 de 3' }),
+    ).toBeInTheDocument()
+
+    // A rede sem nenhuma medição aparece zerada, com o índice em travessão,
+    // em vez de desaparecer do painel.
+    expect(screen.getByRole('cell', { name: '0 de 1' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '—' })).toBeInTheDocument()
   })
 
   it('orienta quando ainda não há plataforma medida', async () => {

@@ -250,7 +250,11 @@ que um de alcance 50.000. Quando o alcance total é zero, o campo vem `null`.
 
 O `desempenho_por_plataforma` agrupa as medições por rede, ignorando diferença
 de maiúsculas — `plataforma` é texto livre, e `Instagram` e `instagram` são a
-mesma rede.
+mesma rede. Cada rede traz os dois contadores da seção anterior,
+`total_conteudos` com todos os conteúdos dela e `conteudos_com_metricas` com os
+que já têm medição. Uma rede onde o usuário publicou e ainda não mediu aparece
+zerada, e não omitida, porque a ausência de medição é justamente o que ele
+precisa ver.
 
 As duas seções vêm acompanhadas de visualização gráfica: barras comparando o
 alcance das plataformas e, na tela de um conteúdo, uma linha com a evolução do

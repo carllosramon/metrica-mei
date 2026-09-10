@@ -320,6 +320,7 @@ def test_platform_performance_groups_and_sums():
     }
 
     assert por_plataforma["Instagram"].total_conteudos == 2
+    assert por_plataforma["Instagram"].conteudos_com_metricas == 2
     assert por_plataforma["Instagram"].total_visualizacoes == 1500
     assert por_plataforma["Instagram"].total_alcance == 1000
     # (80 + 10 + 10 + 20) / 1000 x 100
@@ -327,6 +328,77 @@ def test_platform_performance_groups_and_sums():
 
     assert por_plataforma["TikTok"].total_conteudos == 1
     assert por_plataforma["TikTok"].engajamento == 7.5
+
+
+def test_platform_counts_all_contents_and_only_measured_ones():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(
+        content_repository,
+        titulo="Reels",
+        plataforma="Instagram",
+    )
+    create_content(
+        content_repository,
+        titulo="Carrossel sem medição",
+        plataforma="Instagram",
+    )
+    create_content(
+        content_repository,
+        titulo="Story sem medição",
+        plataforma="Instagram",
+    )
+
+    create_metric(metric_repository, medido.id, alcance=800, curtidas=80)
+
+    dashboard = service.get(user_id=1)
+
+    instagram = dashboard.desempenho_por_plataforma[0]
+
+    # Os dois contadores separam "quantos publiquei nesta rede" de "de
+    # quantos eu já tenho número". Um só dizia a segunda coisa com o nome
+    # da primeira.
+    assert instagram.total_conteudos == 3
+    assert instagram.conteudos_com_metricas == 1
+    assert instagram.total_alcance == 800
+
+
+def test_platform_without_any_measurement_still_appears():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(
+        content_repository,
+        titulo="Reels",
+        plataforma="Instagram",
+    )
+    create_content(
+        content_repository,
+        titulo="Vídeo sem medição",
+        plataforma="TikTok",
+    )
+
+    create_metric(metric_repository, medido.id, alcance=500, curtidas=50)
+
+    dashboard = service.get(user_id=1)
+
+    por_plataforma = {
+        item.plataforma: item
+        for item in dashboard.desempenho_por_plataforma
+    }
+
+    # A rede onde o usuário publicou e ainda não mediu desaparecia do
+    # painel, e ele não tinha como notar que faltava medir ali.
+    assert set(por_plataforma) == {"Instagram", "TikTok"}
+
+    tiktok = por_plataforma["TikTok"]
+
+    assert tiktok.total_conteudos == 1
+    assert tiktok.conteudos_com_metricas == 0
+    assert tiktok.total_alcance == 0
+    assert tiktok.engajamento is None
+
+    # Sem alcance para comparar, a rede não medida fica por último.
+    assert dashboard.desempenho_por_plataforma[0].plataforma == "Instagram"
 
 
 def test_platform_performance_ignores_letter_case():

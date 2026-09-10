@@ -19,6 +19,7 @@ class DashboardContentResponse(BaseModel):
 class DashboardPlatformResponse(BaseModel):
     plataforma: str
     total_conteudos: int
+    conteudos_com_metricas: int
     total_visualizacoes: int
     total_curtidas: int
     total_comentarios: int

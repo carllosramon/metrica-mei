@@ -128,7 +128,7 @@ export function Painel() {
                     <tr>
                       <th scope="col">Plataforma</th>
                       <th scope="col" className={estilos.numerico}>
-                        Conteúdos
+                        Conteúdos medidos
                       </th>
                       <th scope="col" className={estilos.numerico}>
                         Visualizações
@@ -145,8 +145,14 @@ export function Painel() {
                     {dados.desempenho_por_plataforma.map((plataforma) => (
                       <tr key={plataforma.plataforma}>
                         <td>{plataforma.plataforma}</td>
+                        {/* Os dois números juntos, porque "2" sozinho era
+                            lido como o total da rede, e não como a parte
+                            dela que já tem medição. */}
                         <td className={estilos.numerico}>
-                          {formatarNumero(plataforma.total_conteudos)}
+                          {formatarNumero(
+                            plataforma.conteudos_com_metricas,
+                          )}{' '}
+                          de {formatarNumero(plataforma.total_conteudos)}
                         </td>
                         <td className={estilos.numerico}>
                           {formatarNumero(plataforma.total_visualizacoes)}
