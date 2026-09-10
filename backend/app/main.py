@@ -12,6 +12,7 @@ from app.controllers.dashboard_controller import (
 from app.controllers.metric_controller import (
     router as metric_router,
 )
+from app.erros import registrar_erros
 from app.security.jwt import TokenService
 
 
@@ -120,6 +121,10 @@ app.include_router(auth_router)
 app.include_router(content_router)
 app.include_router(metric_router)
 app.include_router(dashboard_router)
+
+# Os erros de domínio viram resposta HTTP num lugar só, e não em cada
+# endpoint.
+registrar_erros(app)
 
 
 @app.get(

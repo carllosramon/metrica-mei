@@ -1,7 +1,6 @@
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
     status,
 )
 
@@ -19,13 +18,7 @@ from app.schemas.metric import (
     MetricResponse,
     MetricUpdateRequest,
 )
-from app.services.metric_service import (
-    DuplicateMetricError,
-    InvalidMetricError,
-    MetricContentNotFoundError,
-    MetricNotFoundError,
-    MetricService,
-)
+from app.services.metric_service import MetricService
 
 
 router = APIRouter(
@@ -48,39 +41,6 @@ _SNAPSHOT = (
     "apresentam os números. O sistema não exige crescimento entre medições, "
     "porque as redes corrigem e recalculam valores."
 )
-
-
-def _raise_content_not_found(exc):
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Conteúdo não encontrado.",
-    ) from exc
-
-
-def _raise_metric_not_found(exc):
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Métrica não encontrada.",
-    ) from exc
-
-
-def _raise_invalid_metric(exc):
-    raise HTTPException(
-        status_code=(
-            status.HTTP_422_UNPROCESSABLE_CONTENT
-        ),
-        detail="Dados da métrica inválidos.",
-    ) from exc
-
-
-def _raise_duplicate_metric(exc):
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail=(
-            "Já existe uma métrica para este "
-            "conteúdo nesta data."
-        ),
-    ) from exc
 
 
 @router.post(
@@ -110,30 +70,20 @@ def create_metric(
         get_metric_service
     ),
 ):
-    try:
-        return service.create(
-            user_id=current_user.id,
-            content_id=content_id,
-            visualizacoes=payload.visualizacoes,
-            curtidas=payload.curtidas,
-            comentarios=payload.comentarios,
-            compartilhamentos=(
-                payload.compartilhamentos
-            ),
-            alcance=payload.alcance,
-            data_referencia=(
-                payload.data_referencia
-            ),
-        )
-
-    except MetricContentNotFoundError as exc:
-        _raise_content_not_found(exc)
-
-    except DuplicateMetricError as exc:
-        _raise_duplicate_metric(exc)
-
-    except InvalidMetricError as exc:
-        _raise_invalid_metric(exc)
+    return service.create(
+        user_id=current_user.id,
+        content_id=content_id,
+        visualizacoes=payload.visualizacoes,
+        curtidas=payload.curtidas,
+        comentarios=payload.comentarios,
+        compartilhamentos=(
+            payload.compartilhamentos
+        ),
+        alcance=payload.alcance,
+        data_referencia=(
+            payload.data_referencia
+        ),
+    )
 
 
 @router.get(
@@ -154,14 +104,10 @@ def list_metrics(
         get_metric_service
     ),
 ):
-    try:
-        return service.list(
-            user_id=current_user.id,
-            content_id=content_id,
-        )
-
-    except MetricContentNotFoundError as exc:
-        _raise_content_not_found(exc)
+    return service.list(
+        user_id=current_user.id,
+        content_id=content_id,
+    )
 
 
 @router.get(
@@ -185,18 +131,11 @@ def get_metric(
         get_metric_service
     ),
 ):
-    try:
-        return service.get(
-            user_id=current_user.id,
-            content_id=content_id,
-            metric_id=metric_id,
-        )
-
-    except MetricContentNotFoundError as exc:
-        _raise_content_not_found(exc)
-
-    except MetricNotFoundError as exc:
-        _raise_metric_not_found(exc)
+    return service.get(
+        user_id=current_user.id,
+        content_id=content_id,
+        metric_id=metric_id,
+    )
 
 
 @router.patch(
@@ -233,25 +172,12 @@ def update_metric(
         exclude_unset=True,
     )
 
-    try:
-        return service.update(
-            user_id=current_user.id,
-            content_id=content_id,
-            metric_id=metric_id,
-            **changes,
-        )
-
-    except MetricContentNotFoundError as exc:
-        _raise_content_not_found(exc)
-
-    except MetricNotFoundError as exc:
-        _raise_metric_not_found(exc)
-
-    except DuplicateMetricError as exc:
-        _raise_duplicate_metric(exc)
-
-    except InvalidMetricError as exc:
-        _raise_invalid_metric(exc)
+    return service.update(
+        user_id=current_user.id,
+        content_id=content_id,
+        metric_id=metric_id,
+        **changes,
+    )
 
 
 @router.delete(
@@ -275,15 +201,8 @@ def delete_metric(
         get_metric_service
     ),
 ):
-    try:
-        service.delete(
-            user_id=current_user.id,
-            content_id=content_id,
-            metric_id=metric_id,
-        )
-
-    except MetricContentNotFoundError as exc:
-        _raise_content_not_found(exc)
-
-    except MetricNotFoundError as exc:
-        _raise_metric_not_found(exc)
+    service.delete(
+        user_id=current_user.id,
+        content_id=content_id,
+        metric_id=metric_id,
+    )

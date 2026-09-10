@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.controllers.respostas import (
     CONTEUDO_NAO_ENCONTRADO,
@@ -13,11 +13,7 @@ from app.schemas.content import (
     ContentResponse,
     ContentUpdateRequest,
 )
-from app.services.content_service import (
-    ContentNotFoundError,
-    ContentService,
-    InvalidContentError,
-)
+from app.services.content_service import ContentService
 
 
 router = APIRouter(
@@ -57,21 +53,14 @@ def create_content(
         get_content_service
     ),
 ):
-    try:
-        return service.create(
-            user_id=current_user.id,
-            titulo=payload.titulo,
-            plataforma=payload.plataforma,
-            tipo=payload.tipo,
-            data_publicacao=payload.data_publicacao,
-            url_publicacao=payload.url_publicacao,
-        )
-
-    except InvalidContentError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Dados do conteúdo inválidos.",
-        ) from exc
+    return service.create(
+        user_id=current_user.id,
+        titulo=payload.titulo,
+        plataforma=payload.plataforma,
+        tipo=payload.tipo,
+        data_publicacao=payload.data_publicacao,
+        url_publicacao=payload.url_publicacao,
+    )
 
 
 @router.get(
@@ -112,17 +101,10 @@ def get_content(
         get_content_service
     ),
 ):
-    try:
-        return service.get(
-            content_id=content_id,
-            user_id=current_user.id,
-        )
-
-    except ContentNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conteúdo não encontrado.",
-        ) from exc
+    return service.get(
+        content_id=content_id,
+        user_id=current_user.id,
+    )
 
 
 @router.patch(
@@ -154,24 +136,11 @@ def update_content(
         exclude_unset=True,
     )
 
-    try:
-        return service.update(
-            content_id=content_id,
-            user_id=current_user.id,
-            **changes,
-        )
-
-    except ContentNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conteúdo não encontrado.",
-        ) from exc
-
-    except InvalidContentError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Dados do conteúdo inválidos.",
-        ) from exc
+    return service.update(
+        content_id=content_id,
+        user_id=current_user.id,
+        **changes,
+    )
 
 
 @router.delete(
@@ -192,14 +161,7 @@ def delete_content(
         get_content_service
     ),
 ):
-    try:
-        service.delete(
-            content_id=content_id,
-            user_id=current_user.id,
-        )
-
-    except ContentNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conteúdo não encontrado.",
-        ) from exc
+    service.delete(
+        content_id=content_id,
+        user_id=current_user.id,
+    )

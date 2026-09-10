@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -72,28 +72,14 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     service: AuthService = Depends(get_auth_service),
 ) -> User:
+    # Token ausente, inválido ou expirado são a mesma coisa para quem
+    # chama, e o tradutor de erros dá a todos a mesma resposta.
     if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Não autenticado.",
-            headers={
-                "WWW-Authenticate": "Bearer",
-            },
-        )
+        raise UnauthenticatedError
 
-    try:
-        return service.get_current_user(
-            credentials.credentials
-        )
-
-    except UnauthenticatedError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Não autenticado.",
-            headers={
-                "WWW-Authenticate": "Bearer",
-            },
-        ) from exc
+    return service.get_current_user(
+        credentials.credentials
+    )
 
 
 
