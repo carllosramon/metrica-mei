@@ -8,10 +8,15 @@ const SEM_RESPOSTA_HTTP = 0
 // de login estando autenticado em outra aba.
 const CAMINHOS_SEM_SESSAO = ['/auth/login', '/auth/register']
 
-let aoPerderSessao: (() => void) | null = null
+// O aviso leva o token da requisição que falhou. Quem controla a sessão
+// compara com o token atual, e um 401 atrasado de uma requisição feita
+// antes de sair não derruba a sessão de quem já entrou de novo.
+type AoPerderSessao = (tokenDaRequisicao: string | null) => void
+
+let aoPerderSessao: AoPerderSessao | null = null
 
 export function registrarPerdaDeSessao(
-  callback: (() => void) | null,
+  callback: AoPerderSessao | null,
 ): void {
   aoPerderSessao = callback
 }
@@ -114,7 +119,7 @@ export async function chamarApi<T>(
     // avisar quem controla a sessão, o usuário ficaria vendo "Não
     // autenticado." como se fosse falha de carregamento.
     if (perdeuSessao(caminho, resposta.status)) {
-      aoPerderSessao?.()
+      aoPerderSessao?.(opcoes.token ?? null)
     }
 
     throw new ErroDaApi(

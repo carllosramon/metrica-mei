@@ -108,9 +108,14 @@ describe('perda de sessão', () => {
         .mockResolvedValue(responderCom(401, { detail: 'Não autenticado.' })),
     )
 
-    await expect(chamarApi('/painel')).rejects.toThrow()
+    await expect(
+      chamarApi('/painel', { token: 'token-da-requisicao' }),
+    ).rejects.toThrow()
 
+    // O aviso leva o token usado, para quem controla a sessão saber se o
+    // 401 é da sessão atual ou de uma requisição atrasada de antes.
     expect(aoPerder).toHaveBeenCalledTimes(1)
+    expect(aoPerder).toHaveBeenCalledWith('token-da-requisicao')
   })
 
   it('não derruba a sessão quando o 401 vem do login', async () => {

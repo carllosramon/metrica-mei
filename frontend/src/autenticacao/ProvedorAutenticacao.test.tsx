@@ -2,29 +2,15 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  buscarUsuarioAtual,
-  cadastrar,
-  entrar,
-} from '../api/autenticacao'
-import { registrarPerdaDeSessao } from '../api/cliente'
+import { chamarApi } from '../api/cliente'
 import type { Usuario } from '../api/tipos'
+import { responderCom } from '../testes/respostaHttp'
 import { ProvedorAutenticacao } from './ProvedorAutenticacao'
 import { useAutenticacao } from './useAutenticacao'
 
-vi.mock('../api/autenticacao', () => ({
-  buscarUsuarioAtual: vi.fn(),
-  cadastrar: vi.fn(),
-  entrar: vi.fn(),
-}))
-
-// O provedor avisa o cliente HTTP do que fazer quando alguma requisição volta
-// 401. Aqui a simulação apenas guarda esse aviso para que os testes possam
-// dispará-lo. Que o 401 de verdade chegue até ele, e que o 401 do próprio
-// login não conte, já está verificado em cliente.test.ts.
-vi.mock('../api/cliente', () => ({
-  registrarPerdaDeSessao: vi.fn(),
-}))
+// Nada aqui é simulado além do fetch. O provedor, o cliente HTTP e os
+// módulos de api rodam de verdade, então o 401 que dispara o aviso de
+// sessão vencida atravessa o mesmo caminho que atravessa no navegador.
 
 const CHAVE_DO_TOKEN = 'metricamei.token'
 
@@ -33,6 +19,39 @@ const carlos: Usuario = {
   nome: 'Carlos',
   email: 'carlos@email.com',
   criado_em: '2026-08-01T00:00:00',
+}
+
+type Resposta = {
+  metodo?: string
+  caminho: string
+  status?: number
+  corpo: unknown
+}
+
+// Um servidor de mentira que responde por método e fim do caminho. O que
+// não estiver na lista estoura, para o teste não passar por acaso.
+function servidorCom(...respostas: Resposta[]) {
+  const requisicao = vi.fn(
+    async (endereco: string, opcoes?: RequestInit) => {
+      const metodo = opcoes?.method ?? 'GET'
+
+      const resposta = respostas.find(
+        (candidata) =>
+          (candidata.metodo ?? 'GET') === metodo &&
+          endereco.endsWith(candidata.caminho),
+      )
+
+      if (resposta === undefined) {
+        throw new Error(`Sem resposta para ${metodo} ${endereco}`)
+      }
+
+      return responderCom(resposta.status ?? 200, resposta.corpo)
+    },
+  )
+
+  vi.stubGlobal('fetch', requisicao)
+
+  return requisicao
 }
 
 // Mostra na tela o que o contexto expõe, que é a única forma de observar o
@@ -84,7 +103,7 @@ function renderizar() {
 
 async function comSessaoAberta() {
   localStorage.setItem(CHAVE_DO_TOKEN, 'token-guardado')
-  vi.mocked(buscarUsuarioAtual).mockResolvedValue(carlos)
+  servidorCom({ caminho: '/auth/me', corpo: carlos })
 
   renderizar()
 
@@ -93,21 +112,37 @@ async function comSessaoAberta() {
   })
 }
 
+// Dispara, pelo cliente real, uma requisição que volta 401 com o token
+// dado. É assim que a tela descobre que a sessão caiu no meio do uso.
+async function requisicaoRecusadaCom(token: string) {
+  servidorCom({
+    caminho: '/painel',
+    status: 401,
+    corpo: { detail: 'Não autenticado.' },
+  })
+
+  await act(async () => {
+    await expect(chamarApi('/painel', { token })).rejects.toThrow()
+  })
+}
+
 beforeEach(() => {
   localStorage.clear()
 })
 
 afterEach(() => {
-  vi.clearAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('ProvedorAutenticacao', () => {
   it('sem token guardado não pergunta nada ao servidor', () => {
+    const requisicao = servidorCom()
+
     renderizar()
 
     expect(screen.getByTestId('token')).toHaveTextContent('nenhum')
     expect(screen.getByTestId('verificando')).toHaveTextContent('não')
-    expect(buscarUsuarioAtual).not.toHaveBeenCalled()
+    expect(requisicao).not.toHaveBeenCalled()
   })
 
   it('segue verificando enquanto o servidor não responde', () => {
@@ -115,7 +150,7 @@ describe('ProvedorAutenticacao', () => {
 
     // Sem esse estado a aplicação decidiria que ninguém está autenticado e
     // piscaria a tela de login a cada recarga de página.
-    vi.mocked(buscarUsuarioAtual).mockReturnValue(new Promise(() => {}))
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
 
     renderizar()
 
@@ -125,7 +160,7 @@ describe('ProvedorAutenticacao', () => {
 
   it('token guardado válido devolve a sessão sem novo login', async () => {
     localStorage.setItem(CHAVE_DO_TOKEN, 'token-guardado')
-    vi.mocked(buscarUsuarioAtual).mockResolvedValue(carlos)
+    const requisicao = servidorCom({ caminho: '/auth/me', corpo: carlos })
 
     renderizar()
 
@@ -133,15 +168,22 @@ describe('ProvedorAutenticacao', () => {
       expect(screen.getByTestId('usuario')).toHaveTextContent('Carlos')
     })
 
-    expect(buscarUsuarioAtual).toHaveBeenCalledWith('token-guardado')
+    const [endereco, opcoes] = requisicao.mock.calls[0]
+
+    expect(endereco).toBe('http://localhost:8000/auth/me')
+    expect(opcoes?.headers).toMatchObject({
+      Authorization: 'Bearer token-guardado',
+    })
     expect(screen.getByTestId('verificando')).toHaveTextContent('não')
   })
 
-  it('token guardado vencido é descartado sem acusar expiração', async () => {
+  it('token guardado vencido é descartado e a tela de login explica', async () => {
     localStorage.setItem(CHAVE_DO_TOKEN, 'token-vencido')
-    vi.mocked(buscarUsuarioAtual).mockRejectedValue(
-      new Error('Não autenticado.'),
-    )
+    servidorCom({
+      caminho: '/auth/me',
+      status: 401,
+      corpo: { detail: 'Não autenticado.' },
+    })
 
     renderizar()
 
@@ -152,30 +194,52 @@ describe('ProvedorAutenticacao', () => {
     expect(localStorage.getItem(CHAVE_DO_TOKEN)).toBeNull()
     expect(screen.getByTestId('verificando')).toHaveTextContent('não')
 
-    // Quem chega com um token velho no bolso não viu sessão nenhuma cair na
-    // frente dele, então a tela de login não tem o que explicar.
+    // Quem volta dias depois com o token vencido precisa entrar de novo, e
+    // saber o motivo é informação, não ruído.
+    expect(screen.getByTestId('expirada')).toHaveTextContent('sim')
+  })
+
+  it('falha de rede na verificação não apaga o token', async () => {
+    localStorage.setItem(CHAVE_DO_TOKEN, 'token-guardado')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))),
+    )
+
+    renderizar()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('verificando')).toHaveTextContent('não')
+    })
+
+    // O backend fora do ar por um instante não é prova de que o token
+    // venceu. Ele fica para a próxima tentativa.
+    expect(localStorage.getItem(CHAVE_DO_TOKEN)).toBe('token-guardado')
+    expect(screen.getByTestId('token')).toHaveTextContent('token-guardado')
     expect(screen.getByTestId('expirada')).toHaveTextContent('não')
   })
 
   it('401 durante o uso encerra a sessão e acusa expiração', async () => {
     await comSessaoAberta()
 
-    // O aviso que vale é o do último registro. A limpeza entre um teste e
-    // outro desmonta o provedor anterior, e a desmontagem registra null.
-    const avisarPerdaDeSessao = vi
-      .mocked(registrarPerdaDeSessao)
-      .mock.calls.at(-1)?.[0]
-
-    expect(avisarPerdaDeSessao).toBeTypeOf('function')
-
-    act(() => {
-      avisarPerdaDeSessao?.()
-    })
+    await requisicaoRecusadaCom('token-guardado')
 
     expect(screen.getByTestId('expirada')).toHaveTextContent('sim')
     expect(screen.getByTestId('token')).toHaveTextContent('nenhum')
     expect(screen.getByTestId('usuario')).toHaveTextContent('nenhum')
     expect(localStorage.getItem(CHAVE_DO_TOKEN)).toBeNull()
+  })
+
+  it('401 atrasado de um token antigo não derruba a sessão nova', async () => {
+    await comSessaoAberta()
+
+    // Uma requisição lenta feita antes de sair e entrar de novo volta 401
+    // com o token de antes. A sessão que vale agora não tem nada com isso.
+    await requisicaoRecusadaCom('token-antigo')
+
+    expect(screen.getByTestId('expirada')).toHaveTextContent('não')
+    expect(screen.getByTestId('token')).toHaveTextContent('token-guardado')
+    expect(screen.getByTestId('usuario')).toHaveTextContent('Carlos')
   })
 
   it('sair encerra a sessão sem acusar expiração', async () => {
@@ -196,11 +260,14 @@ describe('ProvedorAutenticacao', () => {
   it('entrar guarda o token para a próxima abertura', async () => {
     const usuario = userEvent.setup()
 
-    vi.mocked(entrar).mockResolvedValue({
-      access_token: 'token-novo',
-      token_type: 'bearer',
-    })
-    vi.mocked(buscarUsuarioAtual).mockResolvedValue(carlos)
+    const requisicao = servidorCom(
+      {
+        metodo: 'POST',
+        caminho: '/auth/login',
+        corpo: { access_token: 'token-novo', token_type: 'bearer' },
+      },
+      { caminho: '/auth/me', corpo: carlos },
+    )
 
     renderizar()
 
@@ -210,19 +277,27 @@ describe('ProvedorAutenticacao', () => {
       expect(screen.getByTestId('usuario')).toHaveTextContent('Carlos')
     })
 
-    expect(entrar).toHaveBeenCalledWith('carlos@email.com', 'minhasenha')
+    const [, opcoesDoLogin] = requisicao.mock.calls[0]
+
+    expect(JSON.parse(String(opcoesDoLogin?.body))).toEqual({
+      email: 'carlos@email.com',
+      senha: 'minhasenha',
+    })
     expect(localStorage.getItem(CHAVE_DO_TOKEN)).toBe('token-novo')
   })
 
   it('criar conta encadeia o login e já começa a sessão', async () => {
     const usuario = userEvent.setup()
 
-    vi.mocked(cadastrar).mockResolvedValue(carlos)
-    vi.mocked(entrar).mockResolvedValue({
-      access_token: 'token-da-conta-nova',
-      token_type: 'bearer',
-    })
-    vi.mocked(buscarUsuarioAtual).mockResolvedValue(carlos)
+    const requisicao = servidorCom(
+      { metodo: 'POST', caminho: '/auth/register', status: 201, corpo: carlos },
+      {
+        metodo: 'POST',
+        caminho: '/auth/login',
+        corpo: { access_token: 'token-da-conta-nova', token_type: 'bearer' },
+      },
+      { caminho: '/auth/me', corpo: carlos },
+    )
 
     renderizar()
 
@@ -234,12 +309,11 @@ describe('ProvedorAutenticacao', () => {
 
     // O cadastro não devolve token, então sem o login em seguida o usuário
     // teria de digitar tudo de novo na tela ao lado.
-    expect(cadastrar).toHaveBeenCalledWith(
-      'Carlos',
-      'carlos@email.com',
-      'minhasenha',
+    const caminhos = requisicao.mock.calls.map(([endereco]) =>
+      String(endereco).replace('http://localhost:8000', ''),
     )
-    expect(entrar).toHaveBeenCalledWith('carlos@email.com', 'minhasenha')
+
+    expect(caminhos).toEqual(['/auth/register', '/auth/login', '/auth/me'])
     expect(localStorage.getItem(CHAVE_DO_TOKEN)).toBe('token-da-conta-nova')
   })
 })

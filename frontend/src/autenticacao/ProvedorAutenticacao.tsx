@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import {
@@ -6,7 +6,7 @@ import {
   cadastrar,
   entrar,
 } from '../api/autenticacao'
-import { registrarPerdaDeSessao } from '../api/cliente'
+import { ErroDaApi, registrarPerdaDeSessao } from '../api/cliente'
 import type { Usuario } from '../api/tipos'
 import { ContextoAutenticacao } from './contexto'
 
@@ -24,6 +24,14 @@ export function ProvedorAutenticacao({ children }: Props) {
   const [verificando, definirVerificando] = useState(() => token !== null)
   const [sessaoExpirada, definirSessaoExpirada] = useState(false)
 
+  // Espelho do token para o aviso de 401, que chega de fora do ciclo de
+  // renderização e precisa saber qual token está valendo agora.
+  const tokenAtual = useRef(token)
+
+  useEffect(() => {
+    tokenAtual.current = token
+  }, [token])
+
   const encerrarSessao = useCallback(() => {
     localStorage.removeItem(CHAVE_DO_TOKEN)
     definirToken(null)
@@ -34,8 +42,16 @@ export function ProvedorAutenticacao({ children }: Props) {
   useEffect(() => {
     // O cliente HTTP avisa quando qualquer requisição volta 401, porque o
     // token pode vencer com a tela já aberta e não há outro momento em que
-    // a aplicação descubra isso.
-    registrarPerdaDeSessao(() => {
+    // a aplicação descubra isso. Vale também para o token guardado que já
+    // venceu antes de a página abrir, para quem volta dias depois saber
+    // por que precisa entrar de novo.
+    registrarPerdaDeSessao((tokenDaRequisicao) => {
+      // Um 401 atrasado de uma requisição feita antes de sair não pode
+      // derrubar a sessão de quem já entrou de novo.
+      if (tokenDaRequisicao !== tokenAtual.current) {
+        return
+      }
+
       definirSessaoExpirada(true)
       encerrarSessao()
     })
@@ -64,10 +80,21 @@ export function ProvedorAutenticacao({ children }: Props) {
         definirUsuario(encontrado)
         definirVerificando(false)
       })
-      .catch(() => {
-        if (!cancelado) {
-          encerrarSessao()
+      .catch((falha: unknown) => {
+        if (cancelado) {
+          return
         }
+
+        // Só o 401 diz que o token não vale mais. Rede fora do ar ou erro
+        // do servidor não são motivo para apagar um token que pode estar
+        // perfeitamente válido. A verificação termina e o token fica para
+        // a próxima tentativa.
+        if (falha instanceof ErroDaApi && falha.status === 401) {
+          encerrarSessao()
+          return
+        }
+
+        definirVerificando(false)
       })
 
     return () => {
