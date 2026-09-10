@@ -79,6 +79,31 @@ def test_create_rejects_url_without_http_scheme():
         )
 
 
+def test_create_accepts_uppercase_scheme():
+    service = make_service()
+
+    # O esquema não distingue caixa, e "HTTPS://" é tão válido quanto
+    # "https://". Recusar mandaria o usuário corrigir o que está certo.
+    content = create_content(
+        service,
+        "HTTPS://instagram.com/p/abc123",
+    )
+
+    assert content.url_publicacao == "HTTPS://instagram.com/p/abc123"
+
+
+def test_create_rejects_scheme_without_address():
+    service = make_service()
+
+    # Só o esquema passava pela conferência de prefixo e virava um link
+    # para lugar nenhum na tela.
+    with pytest.raises(InvalidContentError):
+        create_content(
+            service,
+            "https://",
+        )
+
+
 def test_create_rejects_url_longer_than_limit():
     service = make_service()
 

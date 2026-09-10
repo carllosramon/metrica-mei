@@ -1,5 +1,6 @@
 from dataclasses import replace
 from datetime import date, datetime, timezone
+from urllib.parse import urlsplit
 
 from app.domain.content import Content
 from app.repositories.content_repository import ContentRepository
@@ -57,8 +58,15 @@ class ContentService:
         normalized = value.strip()
 
         # A validação fica no serviço, e não em HttpUrl do Pydantic, para
-        # manter a regra de negócio fora da camada de contrato.
-        if not normalized.startswith(("http://", "https://")):
+        # manter a regra de negócio fora da camada de contrato. Conferir só
+        # o prefixo deixava passar "https://" sem endereço e recusava
+        # "HTTPS://", que é esquema válido, o esquema não distingue caixa.
+        partes = urlsplit(normalized)
+
+        if partes.scheme.lower() not in ("http", "https"):
+            raise InvalidContentError
+
+        if not partes.netloc:
             raise InvalidContentError
 
         if len(normalized) > 500:
