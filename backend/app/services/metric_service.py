@@ -1,4 +1,4 @@
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import date, datetime, timezone
 
 from app.domain.metric import Metric, MetricWithEngagement
@@ -8,7 +8,7 @@ from app.repositories.metric_repository import (
     MetricRepository,
 )
 from app.services.business_clock import business_today
-from app.services.engagement import calculate_engagement
+from app.services.engagement import engagement_of
 
 
 _METRIC_VALUE_FIELDS = (
@@ -23,6 +23,9 @@ _METRIC_VALUE_FIELDS = (
 # estoura na gravação e o usuário recebe 500 em vez de 422.
 _LIMITE_DO_INTEIRO = 2_147_483_647
 
+# O schema do PATCH não declara estes campos, então a API não consegue
+# enviá-los. O serviço é chamável por dentro, e a recusa protege o
+# contrato dele contra quem não passa pelo controller.
 _IMMUTABLE_FIELDS = (
     "id",
     "conteudo_id",
@@ -173,21 +176,8 @@ class MetricService:
         metric: Metric,
     ) -> MetricWithEngagement:
         return MetricWithEngagement(
-            id=metric.id,
-            conteudo_id=metric.conteudo_id,
-            visualizacoes=metric.visualizacoes,
-            curtidas=metric.curtidas,
-            comentarios=metric.comentarios,
-            compartilhamentos=metric.compartilhamentos,
-            alcance=metric.alcance,
-            data_referencia=metric.data_referencia,
-            criado_em=metric.criado_em,
-            engajamento=calculate_engagement(
-                curtidas=metric.curtidas,
-                comentarios=metric.comentarios,
-                compartilhamentos=metric.compartilhamentos,
-                alcance=metric.alcance,
-            ),
+            **asdict(metric),
+            engajamento=engagement_of(metric),
         )
 
     def create(

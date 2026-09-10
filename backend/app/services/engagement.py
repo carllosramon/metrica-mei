@@ -1,3 +1,6 @@
+from app.domain.metric import Metric
+
+
 def calculate_engagement(
     curtidas: int,
     comentarios: int,
@@ -15,4 +18,16 @@ def calculate_engagement(
     return round(
         interacoes / alcance * 100,
         2,
+    )
+
+
+def engagement_of(metric: Metric) -> float | None:
+    # Quais campos contam como interação é decisão de uma linha só. Escrita
+    # em dois serviços, uma mudança nela deixaria o índice do painel e o da
+    # medição discordando sobre a mesma medição.
+    return calculate_engagement(
+        curtidas=metric.curtidas,
+        comentarios=metric.comentarios,
+        compartilhamentos=metric.compartilhamentos,
+        alcance=metric.alcance,
     )

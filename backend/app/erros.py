@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from app.services.auth_service import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
+    InvalidRegistrationError,
     UnauthenticatedError,
 )
 from app.services.content_service import (
@@ -64,6 +65,15 @@ _RESPOSTAS = (
         EmailAlreadyRegisteredError,
         status.HTTP_409_CONFLICT,
         "E-mail já cadastrado.",
+        None,
+    ),
+    # Os limites de nome e senha estão também no schema, que responde
+    # antes com o detalhe por campo. Sem este mapa, o dia em que a ordem
+    # mudasse o usuário receberia 500 no lugar de 422.
+    (
+        InvalidRegistrationError,
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+        "Dados de cadastro inválidos.",
         None,
     ),
     (

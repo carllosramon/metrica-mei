@@ -5,7 +5,10 @@ from app.domain.dashboard import (
 )
 from app.repositories.content_repository import ContentRepository
 from app.repositories.metric_repository import MetricRepository
-from app.services.engagement import calculate_engagement
+from app.services.engagement import (
+    calculate_engagement,
+    engagement_of,
+)
 
 
 _LIMITE_MAIORES_ALCANCES = 5
@@ -91,12 +94,7 @@ class DashboardService:
                     titulo=content.titulo,
                     plataforma=content.plataforma,
                     alcance=metric.alcance,
-                    engajamento=calculate_engagement(
-                        curtidas=metric.curtidas,
-                        comentarios=metric.comentarios,
-                        compartilhamentos=metric.compartilhamentos,
-                        alcance=metric.alcance,
-                    ),
+                    engajamento=engagement_of(metric),
                     data_referencia=metric.data_referencia,
                 )
             )
