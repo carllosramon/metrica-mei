@@ -11,12 +11,6 @@ import pytest
 
 from app.domain.content import Content
 from app.domain.metric import Metric
-from app.repositories.in_memory_content_repository import (
-    InMemoryContentRepository,
-)
-from app.repositories.in_memory_metric_repository import (
-    InMemoryMetricRepository,
-)
 from app.repositories.metric_repository import (
     MetricPersistenceConflictError,
 )
@@ -29,6 +23,12 @@ from app.services.metric_service import (
     MetricContentNotFoundError,
     MetricNotFoundError,
     MetricService,
+)
+from tests.dubles.in_memory_content_repository import (
+    InMemoryContentRepository,
+)
+from tests.dubles.in_memory_metric_repository import (
+    InMemoryMetricRepository,
 )
 
 

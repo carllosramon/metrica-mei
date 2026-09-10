@@ -3,16 +3,16 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 from app.domain.content import Content
-from app.repositories.in_memory_content_repository import (
-    InMemoryContentRepository,
-)
-from app.repositories.in_memory_metric_repository import (
-    InMemoryMetricRepository,
-)
 from app.repositories.metric_repository import (
     MetricPersistenceConflictError,
 )
 from app.services.metric_service import MetricService
+from tests.dubles.in_memory_content_repository import (
+    InMemoryContentRepository,
+)
+from tests.dubles.in_memory_metric_repository import (
+    InMemoryMetricRepository,
+)
 
 
 def test_create_metric_for_owned_content():

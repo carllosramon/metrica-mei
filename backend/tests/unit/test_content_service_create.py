@@ -2,15 +2,15 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from app.repositories.in_memory_content_repository import (
-    InMemoryContentRepository,
-)
-from app.repositories.in_memory_metric_repository import (
-    InMemoryMetricRepository,
-)
 from app.services.content_service import (
     ContentService,
     InvalidContentError,
+)
+from tests.dubles.in_memory_content_repository import (
+    InMemoryContentRepository,
+)
+from tests.dubles.in_memory_metric_repository import (
+    InMemoryMetricRepository,
 )
 
 

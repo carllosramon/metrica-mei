@@ -2,13 +2,13 @@ from datetime import date, datetime, timedelta, timezone
 
 from app.domain.content import Content
 from app.domain.metric import Metric
-from app.repositories.in_memory_content_repository import (
+from app.services.dashboard_service import DashboardService
+from tests.dubles.in_memory_content_repository import (
     InMemoryContentRepository,
 )
-from app.repositories.in_memory_metric_repository import (
+from tests.dubles.in_memory_metric_repository import (
     InMemoryMetricRepository,
 )
-from app.services.dashboard_service import DashboardService
 
 
 def make_service():

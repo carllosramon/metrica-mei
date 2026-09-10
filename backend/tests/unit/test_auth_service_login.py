@@ -1,9 +1,9 @@
 import pytest
 
-from app.repositories.in_memory_user_repository import InMemoryUserRepository
 from app.security.jwt import TokenService
 from app.security.password import PasswordService
 from app.services.auth_service import AuthService, InvalidCredentialsError
+from tests.dubles.in_memory_user_repository import InMemoryUserRepository
 
 
 def make_service():

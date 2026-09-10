@@ -4,11 +4,11 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 from app.domain.metric import Metric
-from app.repositories.in_memory_metric_repository import (
-    InMemoryMetricRepository,
-)
 from app.repositories.metric_repository import (
     MetricPersistenceConflictError,
+)
+from tests.dubles.in_memory_metric_repository import (
+    InMemoryMetricRepository,
 )
 
 

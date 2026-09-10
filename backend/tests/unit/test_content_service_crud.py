@@ -4,16 +4,16 @@ import pytest
 
 from app.domain.metric import Metric
 
-from app.repositories.in_memory_content_repository import (
-    InMemoryContentRepository,
-)
-from app.repositories.in_memory_metric_repository import (
-    InMemoryMetricRepository,
-)
 from app.services.content_service import (
     ContentNotFoundError,
     InvalidContentError,
     ContentService,
+)
+from tests.dubles.in_memory_content_repository import (
+    InMemoryContentRepository,
+)
+from tests.dubles.in_memory_metric_repository import (
+    InMemoryMetricRepository,
 )
 
 

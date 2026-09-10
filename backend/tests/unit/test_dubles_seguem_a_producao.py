@@ -14,17 +14,17 @@ import pytest
 from app.domain.content import Content
 from app.domain.metric import Metric
 from app.domain.user import User
-from app.repositories.in_memory_content_repository import (
-    InMemoryContentRepository,
-)
-from app.repositories.in_memory_metric_repository import (
-    InMemoryMetricRepository,
-)
-from app.repositories.in_memory_user_repository import (
-    InMemoryUserRepository,
-)
 from app.repositories.user_repository import (
     UserPersistenceConflictError,
+)
+from tests.dubles.in_memory_content_repository import (
+    InMemoryContentRepository,
+)
+from tests.dubles.in_memory_metric_repository import (
+    InMemoryMetricRepository,
+)
+from tests.dubles.in_memory_user_repository import (
+    InMemoryUserRepository,
 )
 
 

@@ -1,13 +1,13 @@
 from datetime import date, datetime, timedelta, timezone
 
 from app.domain.content import Content
-from app.repositories.in_memory_content_repository import (
+from app.services.metric_service import MetricService
+from tests.dubles.in_memory_content_repository import (
     InMemoryContentRepository,
 )
-from app.repositories.in_memory_metric_repository import (
+from tests.dubles.in_memory_metric_repository import (
     InMemoryMetricRepository,
 )
-from app.services.metric_service import MetricService
 
 
 def build_service_with_content(publication_date):
