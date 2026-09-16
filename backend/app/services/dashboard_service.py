@@ -72,13 +72,31 @@ class DashboardService:
 
     @staticmethod
     def _sum_engagement(metrics) -> float | None:
+        # Consolidar sobre os totais é ponderar os índices individuais pelo
+        # alcance de cada um, e medição sem alcance tem peso zero nessa
+        # conta. Somando as interações dela ao numerador, o painel cobrava
+        # essas curtidas do alcance dos outros conteúdos e devolvia um
+        # índice de conta acima do de todos eles.
+        com_base_de_calculo = []
+
+        for metric in metrics:
+            if metric.alcance > 0:
+                com_base_de_calculo.append(metric)
+
         return calculate_engagement(
-            curtidas=sum(metric.curtidas for metric in metrics),
-            comentarios=sum(metric.comentarios for metric in metrics),
-            compartilhamentos=sum(
-                metric.compartilhamentos for metric in metrics
+            curtidas=sum(
+                metric.curtidas for metric in com_base_de_calculo
             ),
-            alcance=sum(metric.alcance for metric in metrics),
+            comentarios=sum(
+                metric.comentarios for metric in com_base_de_calculo
+            ),
+            compartilhamentos=sum(
+                metric.compartilhamentos
+                for metric in com_base_de_calculo
+            ),
+            alcance=sum(
+                metric.alcance for metric in com_base_de_calculo
+            ),
         )
 
     @staticmethod
@@ -168,9 +186,13 @@ class DashboardService:
                 )
             )
 
+        # Rede sem medição nenhuma vai para o fim mesmo empatando em zero
+        # com uma rede medida. Sem o desempate do meio, a ordem entre as
+        # duas era alfabética e a não medida podia vir antes.
         desempenho.sort(
             key=lambda item: (
                 -item.total_alcance,
+                item.conteudos_com_metricas == 0,
                 item.plataforma.casefold(),
             ),
         )

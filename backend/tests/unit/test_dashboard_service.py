@@ -397,6 +397,96 @@ def test_platform_without_any_measurement_still_appears():
     assert tiktok.total_alcance == 0
     assert tiktok.engajamento is None
 
+
+def test_platform_without_measurement_is_last_even_tied_at_zero():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(
+        content_repository,
+        titulo="Vídeo",
+        plataforma="Zeta",
+    )
+    create_content(
+        content_repository,
+        titulo="Post sem medição",
+        plataforma="Alfa",
+    )
+
+    create_metric(metric_repository, medido.id, alcance=0, curtidas=5)
+
+    dashboard = service.get(user_id=1)
+
+    # As duas redes empatam em alcance zero. Com desempate só pelo nome, a
+    # que nunca foi medida vinha primeiro, contra o critério 9 do RF05.
+    assert [
+        item.plataforma
+        for item in dashboard.desempenho_por_plataforma
+    ] == ["Zeta", "Alfa"]
+
+
+def test_engagement_ignores_measurement_without_reach():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(content_repository, titulo="Com alcance")
+    sem_alcance = create_content(
+        content_repository,
+        titulo="Sem alcance",
+    )
+
+    create_metric(metric_repository, medido.id, curtidas=10, alcance=100)
+    create_metric(
+        metric_repository,
+        sem_alcance.id,
+        curtidas=90,
+        alcance=0,
+    )
+
+    dashboard = service.get(user_id=1)
+
+    # As 90 curtidas não têm alcance pelo qual dividir. Somadas ao
+    # numerador, eram cobradas do alcance do outro conteúdo e levavam a
+    # conta a 100%, dez vezes o índice do único conteúdo que tem índice.
+    assert dashboard.engajamento_geral == 10.0
+
+    # O usuário digitou aquelas curtidas: os totais brutos continuam
+    # inteiros, e o que muda é só a conta do índice.
+    assert dashboard.total_curtidas == 100
+    assert dashboard.total_alcance == 100
+    assert dashboard.conteudos_com_metricas == 2
+
+
+def test_platform_engagement_ignores_measurement_without_reach():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(
+        content_repository,
+        titulo="Reels",
+        plataforma="Instagram",
+    )
+    sem_alcance = create_content(
+        content_repository,
+        titulo="Story",
+        plataforma="Instagram",
+    )
+
+    create_metric(metric_repository, medido.id, curtidas=10, alcance=100)
+    create_metric(
+        metric_repository,
+        sem_alcance.id,
+        curtidas=90,
+        alcance=0,
+    )
+
+    dashboard = service.get(user_id=1)
+
+    instagram = dashboard.desempenho_por_plataforma[0]
+
+    # A rede usa a mesma regra do topo. Se divergisse, a linha da tabela
+    # contradiria o cartão destacado sobre as mesmas duas medições.
+    assert instagram.engajamento == 10.0
+    assert instagram.total_curtidas == 100
+    assert instagram.conteudos_com_metricas == 2
+
     # Sem alcance para comparar, a rede não medida fica por último.
     assert dashboard.desempenho_por_plataforma[0].plataforma == "Instagram"
 

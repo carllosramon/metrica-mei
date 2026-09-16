@@ -252,7 +252,13 @@ números, porque cada snapshot já contém o total acumulado até a sua data.
 
 O `engajamento_geral` é calculado sobre os totais, e não como média dos
 engajamentos individuais — na média, um conteúdo de alcance 10 pesaria o mesmo
-que um de alcance 50.000. Quando o alcance total é zero, o campo vem `null`.
+que um de alcance 50.000. Entram nesses totais apenas as medições com alcance
+maior que zero: medição sem alcance não tem base de cálculo, e deixá-la somar
+interações ao numerador cobrava as curtidas de um conteúdo do alcance de outro,
+chegando a devolver um índice de conta acima do de qualquer conteúdo dela. Os
+números brutos continuam somando todas as medições, e a medição sem alcance
+continua no ranking, apenas sem índice. Quando nenhuma medição tem alcance, o
+campo vem `null`.
 
 O `desempenho_por_plataforma` agrupa as medições por rede, ignorando diferença
 de maiúsculas — `plataforma` é texto livre, e `Instagram` e `instagram` são a
