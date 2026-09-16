@@ -34,6 +34,16 @@ export function FormularioDaMedicao({
 }: Props) {
   return (
     <form className={estilos.cartao} onSubmit={aoEnviar}>
+      {/* A única menção a "acumulado" ficava no estado vazio, abaixo do
+          formulário, e sumia da segunda medição em diante. Quem anotasse
+          o movimento do dia estragaria o histórico sem nunca saber. */}
+      <p className={estilos.instrucao}>
+        Anote os números <strong>totais</strong> que a rede social mostra
+        hoje, desde que você publicou, e não o que rendeu só hoje. Se o
+        post já tem 4.000 visualizações e ganhou 300 desde a última
+        anotação, escreva 4.300.
+      </p>
+
       <div className={estilos.linhaDeCampos}>
         <Campo
           rotulo="Data de referência"
@@ -56,6 +66,7 @@ export function FormularioDaMedicao({
           required
           min={0}
           step={1}
+          dica="Quantas vezes o post foi exibido, contando repetições. É normal ser maior que o alcance."
         />
         <Campo
           rotulo="Alcance"
@@ -65,7 +76,7 @@ export function FormularioDaMedicao({
           required
           min={0}
           step={1}
-          dica="Zero deixa o engajamento sem cálculo"
+          dica="Quantas pessoas diferentes viram o post. No Instagram aparece como “Contas alcançadas”. Deixar em zero deixa o engajamento sem cálculo."
         />
         <Campo
           rotulo="Curtidas"

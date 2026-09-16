@@ -36,6 +36,19 @@
   box-shadow: var(--sombra);
 }
 
+/* A regra que o formulário inteiro pressupõe, dita antes dos campos e
+   não depois deles. */
+.instrucao {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--cor-destaque);
+  border-radius: 0 var(--raio) var(--raio) 0;
+  background-color: var(--cor-destaque-suave);
+  color: var(--cor-texto);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .linhaDeCampos {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
