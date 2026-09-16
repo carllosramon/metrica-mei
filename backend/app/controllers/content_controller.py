@@ -27,6 +27,11 @@ _DADOS_INVALIDOS = {
         "description": (
             "Título, plataforma ou tipo fora dos limites de tamanho, data "
             "de publicação no futuro, ou URL sem esquema http/https."
+            "\n\n"
+            "A URL precisa ser um endereço completo, e não só o esquema: "
+            "`https://` sozinho é recusado. O esquema aceita caixa alta, "
+            "porque `HTTPS://` é válido, e o endereço inteiro cabe em 500 "
+            "caracteres."
         ),
     },
 }

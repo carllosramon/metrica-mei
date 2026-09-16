@@ -31,6 +31,14 @@ _VALORES_INVALIDOS = {
         "description": (
             "Valores que não sejam inteiros maiores ou iguais a zero, ou "
             "data de referência anterior à publicação ou no futuro."
+            "\n\n"
+            "O teto de cada valor é 2147483647, o maior `INTEGER` do "
+            "PostgreSQL. Texto numérico como `\"100\"`, decimal como "
+            "`1.0` e booleano são recusados em vez de convertidos, "
+            "senão a medição gravaria um número que ninguém digitou."
+            "\n\n"
+            "No `PATCH`, corpo sem nenhum campo também é recusado: "
+            "seria uma correção que não corrige nada."
         ),
     },
 }

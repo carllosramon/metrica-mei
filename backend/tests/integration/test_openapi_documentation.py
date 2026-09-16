@@ -81,3 +81,20 @@ def test_erros_de_negocio_estao_documentados():
 
     assert "404" in consultar_conteudo["responses"]
     assert "401" in consultar_conteudo["responses"]
+
+
+def test_prazo_do_token_sai_da_configuracao():
+    # Estava escrito "trinta minutos" em dois lugares da documentação.
+    # Quem subisse a API com outro JWT_EXPIRES_MINUTES ficava com o
+    # /docs mentindo justamente sobre quando renovar o token.
+    from app.controllers.respostas import prazo_do_token
+
+    prazo = prazo_do_token()
+
+    esquema = app.openapi()
+
+    assert prazo in esquema["info"]["description"]
+    assert (
+        prazo
+        in esquema["paths"]["/auth/login"]["post"]["description"]
+    )

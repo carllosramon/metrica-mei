@@ -12,11 +12,12 @@ from app.controllers.dashboard_controller import (
 from app.controllers.metric_controller import (
     router as metric_router,
 )
+from app.controllers.respostas import prazo_do_token
 from app.erros import registrar_erros
 from app.security.jwt import TokenService
 
 
-_DESCRICAO = """
+_DESCRICAO = f"""
 API do MetricaMEI, que centraliza o registro e a análise de desempenho de
 conteúdos digitais publicados em redes sociais por microempreendedores.
 
@@ -29,7 +30,7 @@ Obtenha o token em `POST /auth/login` e envie-o no cabeçalho:
 Authorization: Bearer <token>
 ```
 
-O token expira em trinta minutos e não há renovação automática.
+O token expira em {prazo_do_token()} e não há renovação automática.
 
 ## Convenção de erros
 
