@@ -27,9 +27,17 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
     ).toBeVisible()
   })
 
-  await test.step('painel de conta nova vem zerado', async () => {
+  await test.step('painel de conta nova ensina o primeiro passo', async () => {
+    // Quem ainda não cadastrou conteúdo não pode medir nada, então o
+    // painel manda cadastrar, e não medir.
     await expect(
-      page.getByText('Nenhuma medição registrada ainda.', { exact: false }),
+      page.getByRole('heading', {
+        name: /ainda não cadastrou nenhum conteúdo/,
+      }),
+    ).toBeVisible()
+
+    await expect(
+      page.getByRole('link', { name: 'Cadastrar minha primeira publicação' }),
     ).toBeVisible()
   })
 
