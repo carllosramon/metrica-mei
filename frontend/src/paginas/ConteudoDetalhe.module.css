@@ -161,3 +161,13 @@
   background-color: var(--cor-erro-suave);
   color: var(--cor-erro);
 }
+
+/* Fica ao lado do botão, não acima do formulário, porque é resposta ao
+   clique. Verde sobre branco dá 5,99:1, acima do mínimo de 4,5:1. */
+.sucesso {
+  align-self: center;
+  margin: 0;
+  color: var(--cor-destaque);
+  font-size: 14px;
+  font-weight: 600;
+}

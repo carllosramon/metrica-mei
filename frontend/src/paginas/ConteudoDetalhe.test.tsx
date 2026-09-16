@@ -252,6 +252,31 @@ describe('ConteudoDetalhe', () => {
     )
   })
 
+  it('confirma na tela que o conteúdo foi salvo', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockResolvedValue(conteudo)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    // Salvar não muda nada nos campos, então sem esse aviso não há como
+    // saber se foi.
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Alterações salvas.',
+    )
+
+    // E o aviso sai assim que o texto na tela deixa de ser o gravado.
+    await usuario.type(screen.getByLabelText('Título'), '!')
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('mostra o motivo quando salvar o conteúdo falha', async () => {
     const usuario = userEvent.setup()
 

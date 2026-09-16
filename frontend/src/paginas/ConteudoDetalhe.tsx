@@ -74,6 +74,7 @@ export function ConteudoDetalhe() {
   const [enviando, definirEnviando] = useState(false)
 
   const [dadosDoConteudo, definirDadosDoConteudo] = useState(CONTEUDO_VAZIO)
+  const [conteudoSalvo, definirConteudoSalvo] = useState(false)
   const [confirmandoExclusao, definirConfirmandoExclusao] = useState(false)
 
   const [medicao, definirMedicao] = useState(medicaoVazia)
@@ -199,6 +200,7 @@ export function ConteudoDetalhe() {
     }
 
     definirErro(null)
+    definirConteudoSalvo(false)
     definirEnviando(true)
 
     try {
@@ -208,6 +210,7 @@ export function ConteudoDetalhe() {
       })
 
       await carregarConteudo()
+      definirConteudoSalvo(true)
     } catch (falha) {
       definirErro(mensagemDe(falha, 'Não foi possível salvar o conteúdo.'))
     } finally {
@@ -367,6 +370,9 @@ export function ConteudoDetalhe() {
   }
 
   function alterarConteudo(campo: keyof DadosEditaveis, valor: string) {
+    // Editar de novo desfaz o "salvas": o que está na tela deixou de ser
+    // o que está gravado.
+    definirConteudoSalvo(false)
     definirDadosDoConteudo((atual) => ({ ...atual, [campo]: valor }))
   }
 
@@ -421,6 +427,7 @@ export function ConteudoDetalhe() {
       <FormularioDoConteudo
         dados={dadosDoConteudo}
         enviando={enviando}
+        salvo={conteudoSalvo}
         aoAlterar={alterarConteudo}
         aoEnviar={salvarConteudo}
       />
