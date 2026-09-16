@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { criarConteudo, listarConteudos } from '../api/conteudos'
 import { mensagemDe } from '../api/falhas'
-import type { Conteudo } from '../api/tipos'
+import type { ConteudoDaLista } from '../api/tipos'
 import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { reservarPedido } from '../carregamento'
 import { Campo } from '../componentes/Campo'
@@ -36,8 +36,16 @@ function formularioVazio(): DadosDoFormulario {
 export function Conteudos() {
   const { token } = useAutenticacao()
 
-  const [conteudos, definirConteudos] = useState<Conteudo[] | null>(null)
-  const [erro, definirErro] = useState<string | null>(null)
+  const [conteudos, definirConteudos] = useState<ConteudoDaLista[] | null>(null)
+
+  // Dois erros, porque a tela distingue "a lista não veio" de "o cadastro
+  // não passou". Com um estado só, limpar o erro ao cadastrar apagava
+  // também a falha de carga, e a lista, que continuava nula, voltava a
+  // dizer "Carregando…" para sempre.
+  const [erroDeCarga, definirErroDeCarga] = useState<string | null>(null)
+  const [erroDoFormulario, definirErroDoFormulario] = useState<string | null>(
+    null,
+  )
   const [formularioAberto, definirFormularioAberto] = useState(false)
   const [formulario, definirFormulario] = useState(formularioVazio)
   const [enviando, definirEnviando] = useState(false)
@@ -59,13 +67,14 @@ export function Conteudos() {
 
       if (aindaVale()) {
         definirConteudos(encontrados)
+        definirErroDeCarga(null)
       }
     } catch (falha) {
       if (!aindaVale()) {
         return
       }
 
-      definirErro(
+      definirErroDeCarga(
         mensagemDe(falha, 'Não foi possível carregar os conteúdos.'),
       )
     }
@@ -79,7 +88,13 @@ export function Conteudos() {
     definirFormulario((atual) => ({ ...atual, [campo]: valor }))
   }
 
+  function abrirFormulario() {
+    definirErroDoFormulario(null)
+    definirFormularioAberto(true)
+  }
+
   function fecharFormulario() {
+    definirErroDoFormulario(null)
     definirFormularioAberto(false)
     definirFormulario(formularioVazio())
   }
@@ -91,7 +106,7 @@ export function Conteudos() {
       return
     }
 
-    definirErro(null)
+    definirErroDoFormulario(null)
     definirEnviando(true)
 
     try {
@@ -106,7 +121,7 @@ export function Conteudos() {
       fecharFormulario()
       await carregar()
     } catch (falha) {
-      definirErro(
+      definirErroDoFormulario(
         mensagemDe(falha, 'Não foi possível cadastrar o conteúdo.'),
       )
     } finally {
@@ -123,16 +138,16 @@ export function Conteudos() {
           <button
             className={estilos.acao}
             type="button"
-            onClick={() => definirFormularioAberto(true)}
+            onClick={abrirFormulario}
           >
             Novo conteúdo
           </button>
         )}
       </header>
 
-      {erro !== null && (
+      {erroDeCarga !== null && (
         <p className={estilos.erro} role="alert">
-          {erro}
+          {erroDeCarga}
         </p>
       )}
 
@@ -188,6 +203,15 @@ export function Conteudos() {
             dica="Opcional. Precisa começar com http:// ou https://"
           />
 
+          {/* Junto dos botões, como na tela de detalhe. No topo da página
+              o aviso ficava acima do formulário inteiro, longe do clique
+              que o produziu. */}
+          {erroDoFormulario !== null && (
+            <p className={estilos.erro} role="alert">
+              {erroDoFormulario}
+            </p>
+          )}
+
           <div className={estilos.botoes}>
             <button
               className={estilos.acao}
@@ -207,7 +231,7 @@ export function Conteudos() {
         </form>
       )}
 
-      {conteudos === null && erro === null && <p>Carregando…</p>}
+      {conteudos === null && erroDeCarga === null && <p>Carregando…</p>}
 
       {conteudos !== null && conteudos.length === 0 && (
         <p className={estilos.vazio}>
@@ -225,6 +249,7 @@ export function Conteudos() {
                 <th scope="col">Plataforma</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Publicação</th>
+                <th scope="col">Última medição</th>
               </tr>
             </thead>
             <tbody>
@@ -238,6 +263,17 @@ export function Conteudos() {
                   <td>{conteudo.plataforma}</td>
                   <td>{conteudo.tipo}</td>
                   <td>{formatarData(conteudo.data_publicacao)}</td>
+                  {/* A coluna é o que responde "o que eu esqueci de
+                      medir" sem abrir um conteúdo por vez. */}
+                  <td>
+                    {conteudo.ultima_medicao === null ? (
+                      <span className={estilos.nuncaMedido}>
+                        nunca medido
+                      </span>
+                    ) : (
+                      formatarData(conteudo.ultima_medicao)
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

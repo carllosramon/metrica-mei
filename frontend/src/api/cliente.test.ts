@@ -90,6 +90,48 @@ describe('chamarApi', () => {
       'Não foi possível falar com o servidor.',
     )
   })
+
+  it('desiste quando a resposta demora além do prazo', async () => {
+    const estourou = new Error('The operation was aborted due to timeout')
+    estourou.name = 'TimeoutError'
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(estourou))
+
+    // Sem prazo, a promessa fica pendente para sempre e todo botão da
+    // tela continua desabilitado esperando por ela.
+    await expect(chamarApi('/painel')).rejects.toThrow(
+      'O servidor demorou demais para responder.',
+    )
+  })
+
+  it('manda um prazo junto de toda requisição', async () => {
+    const requisicao = vi.fn().mockResolvedValue(responderCom(200, {}))
+
+    vi.stubGlobal('fetch', requisicao)
+
+    await chamarApi('/painel')
+
+    expect(requisicao.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('recusa um 200 que não traz JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError('Unexpected token <')
+        },
+      } as unknown as Response),
+    )
+
+    // É o index.html chegando no lugar da API. Virando nulo em silêncio,
+    // a tela ficava em "Carregando…" sem nunca sair de lá.
+    await expect(chamarApi('/conteudos')).rejects.toThrow(
+      /não é a resposta esperada/,
+    )
+  })
 })
 
 describe('perda de sessão', () => {

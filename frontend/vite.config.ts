@@ -1,5 +1,26 @@
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
+
+// Sem VITE_API_URL o cliente cai em http://localhost:8000, que fica
+// embutido no pacote e só falha na máquina de quem abrir o site. O build
+// passa assim mesmo, porque em desenvolvimento esse endereço é o certo,
+// mas avisa em vez de deixar o engano sair calado.
+function avisarQuandoFaltaOEnderecoDaApi(): Plugin {
+  return {
+    name: 'avisar-quando-falta-o-endereco-da-api',
+    apply: 'build',
+    configResolved(configuracao) {
+      if (!configuracao.env.VITE_API_URL) {
+        configuracao.logger.warn(
+          '\nVITE_API_URL não foi definida. O pacote vai procurar a API em ' +
+            'http://localhost:8000, o que só funciona na sua máquina. ' +
+            'Defina a variável antes de publicar.\n',
+        )
+      }
+    },
+  }
+}
 
 // O sistema formata datas para o público brasileiro, e a conversão entre o
 // calendário local e o UTC é justamente o que alguns testes verificam. Sem
@@ -8,7 +29,7 @@ import { defineConfig } from 'vitest/config'
 process.env.TZ = 'America/Sao_Paulo'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), avisarQuandoFaltaOEnderecoDaApi()],
   test: {
     environment: 'jsdom',
     globals: true,
@@ -34,10 +55,10 @@ export default defineConfig({
       // escolhida no chute. Serve de trava contra queda, e sobe junto quando
       // a cobertura sobe.
       thresholds: {
-        statements: 91,
-        branches: 82,
-        functions: 92,
-        lines: 91,
+        statements: 92,
+        branches: 85,
+        functions: 94,
+        lines: 92,
       },
     },
   },

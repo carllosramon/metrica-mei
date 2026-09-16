@@ -3,7 +3,9 @@ from datetime import date, datetime, timedelta, timezone
 import importlib
 import importlib.util
 
-from app.database.models import UserModel
+from sqlalchemy import select
+
+from app.database.models import MetricModel, UserModel
 from app.domain.content import Content
 
 
@@ -252,3 +254,77 @@ def test_sqlalchemy_content_repository_deletes_content(
         )
 
     assert loaded is None
+
+
+def test_deleting_content_removes_its_metrics_in_the_database(
+    session_factory,
+):
+    # A cascata é decisão da chave estrangeira, e o RF02 promete que
+    # excluir o conteúdo apaga as medições dele. Isso nunca tinha sido
+    # exercitado contra um banco: remover o ondelete="CASCADE" do modelo
+    # não quebrava teste nenhum. Como o fixture respeita
+    # TEST_DATABASE_URL, na integração contínua este teste roda também
+    # no PostgreSQL, onde o comportamento é do próprio banco e não da
+    # PRAGMA que ligamos no SQLite.
+    with session_factory() as session:
+        owner = UserModel(
+            nome="Carlos",
+            email="carlos@email.com",
+            senha_hash="hash",
+            criado_em=datetime.now(timezone.utc),
+        )
+
+        session.add(owner)
+        session.commit()
+        session.refresh(owner)
+
+        repository = get_repository_class()(session)
+
+        conteudo = repository.create(
+            Content(
+                id=None,
+                usuario_id=owner.id,
+                titulo="Conteúdo com medições",
+                plataforma="Instagram",
+                tipo="Reels",
+                data_publicacao=date.today() - timedelta(days=2),
+                criado_em=datetime.now(timezone.utc),
+            )
+        )
+
+        for dias in (1, 2):
+            session.add(
+                MetricModel(
+                    conteudo_id=conteudo.id,
+                    visualizacoes=100,
+                    curtidas=10,
+                    comentarios=2,
+                    compartilhamentos=1,
+                    alcance=80,
+                    data_referencia=(
+                        date.today() - timedelta(days=dias)
+                    ),
+                    criado_em=datetime.now(timezone.utc),
+                )
+            )
+
+        session.commit()
+
+        restantes = session.scalars(
+            select(MetricModel).where(
+                MetricModel.conteudo_id == conteudo.id
+            )
+        ).all()
+
+        assert len(restantes) == 2
+
+        repository.delete(conteudo)
+        session.commit()
+
+        orfas = session.scalars(
+            select(MetricModel).where(
+                MetricModel.conteudo_id == conteudo.id
+            )
+        ).all()
+
+    assert orfas == []

@@ -15,6 +15,10 @@ export type DadosEditaveis = {
 type Props = {
   dados: DadosEditaveis
   enviando: boolean
+  // Salvar aqui não muda nada na tela, porque os campos já mostram o que
+  // foi digitado. Sem um aviso, a única pista de que deu certo é o botão
+  // piscar, e quem não vê fica salvando de novo.
+  salvo?: boolean
   aoAlterar: (campo: keyof DadosEditaveis, valor: string) => void
   aoEnviar: (evento: FormEvent) => void
 }
@@ -22,6 +26,7 @@ type Props = {
 export function FormularioDoConteudo({
   dados,
   enviando,
+  salvo = false,
   aoAlterar,
   aoEnviar,
 }: Props) {
@@ -73,8 +78,14 @@ export function FormularioDoConteudo({
 
       <div className={estilos.botoes}>
         <button className={estilos.acao} type="submit" disabled={enviando}>
-          Salvar alterações
+          {enviando ? 'Salvando…' : 'Salvar alterações'}
         </button>
+
+        {salvo && !enviando && (
+          <p className={estilos.sucesso} role="status">
+            Alterações salvas.
+          </p>
+        )}
       </div>
     </form>
   )

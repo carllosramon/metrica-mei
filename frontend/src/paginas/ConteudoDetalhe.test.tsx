@@ -1,4 +1,11 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   MemoryRouter,
@@ -165,8 +172,41 @@ describe('ConteudoDetalhe', () => {
     )
 
     // A mensagem do backend diz o que houve; a da tela diz o que fazer.
+    const aviso = await screen.findByText(
+      /Edite a medição existente ou escolha outra data/,
+    )
+
+    expect(aviso).toBeInTheDocument()
+
+    // E aparece dentro do formulário, ao alcance de quem acabou de clicar
+    // em Salvar. Quando ficava no topo da página, o usuário via o botão
+    // não fazer nada e concluía que a tela tinha quebrado.
     expect(
-      await screen.findByText(/Edite a medição existente ou escolha outra data/),
+      screen.getByRole('button', { name: 'Salvar medição' }).closest('form'),
+    ).toContainElement(aviso)
+  })
+
+  it('o formulário diz se está criando ou corrigindo uma medição', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    expect(
+      screen.getByRole('heading', { name: 'Nova medição' }),
+    ).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await usuario.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(
+      screen.getByRole('heading', { name: 'Editando a medição de 22/08/2026' }),
     ).toBeInTheDocument()
   })
 
@@ -210,6 +250,31 @@ describe('ConteudoDetalhe', () => {
         url_publicacao: null,
       }),
     )
+  })
+
+  it('confirma na tela que o conteúdo foi salvo', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockResolvedValue(conteudo)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    // Salvar não muda nada nos campos, então sem esse aviso não há como
+    // saber se foi.
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Alterações salvas.',
+    )
+
+    // E o aviso sai assim que o texto na tela deixa de ser o gravado.
+    await usuario.type(screen.getByLabelText('Título'), '!')
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('mostra o motivo quando salvar o conteúdo falha', async () => {
@@ -618,6 +683,93 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     await act(async () => {
       exclusao.resolver()
     })
+  })
+
+  it('número com ponto de milhar é gravado por inteiro', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(criarMetrica).mockResolvedValue(medicao)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    // O campo numérico aceita "12.000" como número válido, e Number() lê
+    // isso como 12. É o formato em que o Instagram mostra o alcance, ou
+    // seja, o que o usuário copia.
+    fireEvent.change(screen.getByLabelText('Alcance'), {
+      target: { value: '12.000' },
+    })
+
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar medição' }),
+    )
+
+    await waitFor(() => {
+      expect(criarMetrica).toHaveBeenCalledTimes(1)
+    })
+
+    expect(criarMetrica).toHaveBeenCalledWith(
+      'token-de-teste',
+      7,
+      expect.objectContaining({ alcance: 12000 }),
+    )
+  })
+
+  it('número ambíguo é recusado antes de chegar à api', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    fireEvent.change(screen.getByLabelText('Alcance'), {
+      target: { value: '1.5' },
+    })
+
+    // O envio vai direto ao formulário porque a validação de passo do
+    // navegador barraria o clique antes. A recusa aqui é a segunda
+    // linha, para quando essa validação não existir ou for contornada.
+    const formulario = screen
+      .getByRole('button', { name: 'Salvar medição' })
+      .closest('form') as HTMLFormElement
+
+    fireEvent.submit(formulario)
+
+    // Metade de uma pessoa alcançada não é medida. Recusar é melhor que
+    // adivinhar entre 1,5 e 15.
+    expect(criarMetrica).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText(/Confira os números da medição/),
+    ).toBeInTheDocument()
+  })
+
+  it('o formulário avisa que os números são acumulados', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    // O aviso precisa estar visível na segunda medição também, que é
+    // quando a confusão entre total e movimento do dia aparece.
+    expect(
+      screen.getByText(/e não o que rendeu só hoje/),
+    ).toBeInTheDocument()
   })
 
   it('endereço inválido devolve à lista sem consultar a api', async () => {

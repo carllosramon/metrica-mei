@@ -433,3 +433,58 @@ def test_update_accepts_publication_date_equal_to_existing_metric():
     )
 
     assert updated.data_publicacao == metric_date
+
+
+def test_list_reports_date_of_latest_metric_of_each_content():
+    content_repository = InMemoryContentRepository()
+    metric_repository = InMemoryMetricRepository()
+    service = ContentService(
+        content_repository,
+        metric_repository,
+    )
+
+    medido = service.create(
+        user_id=1,
+        titulo="Conteúdo medido",
+        plataforma="Instagram",
+        tipo="Reels",
+        data_publicacao=date.today() - timedelta(days=5),
+    )
+
+    nunca_medido = service.create(
+        user_id=1,
+        titulo="Conteúdo sem medição",
+        plataforma="TikTok",
+        tipo="Vídeo",
+        data_publicacao=date.today() - timedelta(days=4),
+    )
+
+    antiga = date.today() - timedelta(days=3)
+    recente = date.today() - timedelta(days=1)
+
+    # Fora de ordem de propósito: a mais recente é a de maior data de
+    # referência, e não a última gravada.
+    for dia in (recente, antiga):
+        metric_repository.create(
+            Metric(
+                id=None,
+                conteudo_id=medido.id,
+                visualizacoes=100,
+                curtidas=10,
+                comentarios=2,
+                compartilhamentos=1,
+                alcance=80,
+                data_referencia=dia,
+                criado_em=datetime.now(timezone.utc),
+            )
+        )
+
+    listagem = service.list(user_id=1)
+
+    datas = {item.id: item.ultima_medicao for item in listagem}
+
+    assert datas[medido.id] == recente
+
+    # Nulo é "nunca medido", que é justamente o que a lista precisa
+    # mostrar para quem mede periodicamente.
+    assert datas[nunca_medido.id] is None

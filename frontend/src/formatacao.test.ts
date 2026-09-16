@@ -41,6 +41,14 @@ describe('formatarData', () => {
     // new Date('2026-01-01') vira 31/12/2025 no horário de Brasília.
     expect(formatarData('2026-01-01')).toBe('01/01/2026')
   })
+
+  it('mostra travessão no que não é uma data ISO', () => {
+    // Antes saía "undefined/undefined/" na tela, que não diz nada a quem
+    // está lendo e nem sequer parece um defeito do sistema.
+    expect(formatarData('')).toBe('—')
+    expect(formatarData('25/08/2026')).toBe('—')
+    expect(formatarData('2026-08-25T10:00:00')).toBe('—')
+  })
 })
 
 describe('dataDeHoje', () => {
@@ -54,5 +62,25 @@ describe('dataDeHoje', () => {
     expect(dataDeHoje()).toBe('2026-08-27')
 
     vi.useRealTimers()
+  })
+
+  it('não segue o fuso da máquina nem quando ele é outro', () => {
+    // O vite.config fixa TZ em America/Sao_Paulo, então o teste acima
+    // passaria mesmo sem o timeZone explícito da função: o fuso da
+    // máquina já é o certo. Aqui a máquina passa a estar em UTC, que é
+    // o caso do servidor de integração e de boa parte dos navegadores
+    // fora do Brasil.
+    vi.stubEnv('TZ', 'UTC')
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-28T00:30:00Z'))
+
+    // Guarda: se a troca do fuso não valesse neste ambiente, o teste
+    // voltaria a não provar nada, e em silêncio.
+    expect(new Date().getHours()).toBe(0)
+
+    expect(dataDeHoje()).toBe('2026-08-27')
+
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
   })
 })

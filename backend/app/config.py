@@ -19,7 +19,12 @@ class Settings(BaseSettings):
         origins = []
 
         for origin in self.cors_origins.split(","):
-            normalized = origin.strip()
+            # A barra final é o engano mais comum de quem copia o
+            # endereço da barra do navegador. O CORS compara a origem
+            # como texto exato, então "https://app.com/" nunca casa com
+            # a origem que o navegador manda, e a falha aparece como
+            # requisição bloqueada, sem dizer o motivo.
+            normalized = origin.strip().rstrip("/")
 
             if normalized:
                 origins.append(normalized)

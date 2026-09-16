@@ -61,6 +61,13 @@ export type Conteudo = {
   url_publicacao: string | null
 }
 
+// Só a listagem traz a data da última medição. Na resposta de um
+// conteúdo isolado o campo não existe, e um nulo ali seria lido como
+// "nunca medido" num conteúdo que pode ter histórico inteiro.
+export type ConteudoDaLista = Conteudo & {
+  ultima_medicao: string | null
+}
+
 export type DadosDoConteudo = {
   titulo: string
   plataforma: string

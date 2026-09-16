@@ -1,10 +1,10 @@
 import { chamarApi } from './cliente'
-import type { Conteudo, DadosDoConteudo } from './tipos'
+import type { Conteudo, ConteudoDaLista, DadosDoConteudo } from './tipos'
 
 export function listarConteudos(
   token: string,
-): Promise<Conteudo[]> {
-  return chamarApi<Conteudo[]>('/conteudos', { token })
+): Promise<ConteudoDaLista[]> {
+  return chamarApi<ConteudoDaLista[]>('/conteudos', { token })
 }
 
 export function buscarConteudo(

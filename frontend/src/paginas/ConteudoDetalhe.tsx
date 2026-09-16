@@ -26,7 +26,7 @@ import type { DadosDaMedicao } from './detalhe/FormularioDaMedicao'
 import { FormularioDoConteudo } from './detalhe/FormularioDoConteudo'
 import type { DadosEditaveis } from './detalhe/FormularioDoConteudo'
 import { TabelaDeMedicoes } from './detalhe/TabelaDeMedicoes'
-import { urlOuNulo } from './formularios'
+import { inteiroDigitado, urlOuNulo } from './formularios'
 
 // A data padrão é calculada na hora de abrir o formulário. Calculada no
 // carregamento do módulo, numa aba aberta depois da meia-noite ela ficava
@@ -74,6 +74,7 @@ export function ConteudoDetalhe() {
   const [enviando, definirEnviando] = useState(false)
 
   const [dadosDoConteudo, definirDadosDoConteudo] = useState(CONTEUDO_VAZIO)
+  const [conteudoSalvo, definirConteudoSalvo] = useState(false)
   const [confirmandoExclusao, definirConfirmandoExclusao] = useState(false)
 
   const [medicao, definirMedicao] = useState(medicaoVazia)
@@ -84,6 +85,22 @@ export function ConteudoDetalhe() {
   const [medicaoConfirmada, definirMedicaoConfirmada] = useState<
     number | null
   >(null)
+
+  const areaDoFormulario = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!formularioAberto) {
+      return
+    }
+
+    // O formulário abre acima do gráfico e da tabela, então quem clicou
+    // numa linha lá embaixo não via nada acontecer. A rolagem e o foco
+    // levam a pessoa até onde a ação continua.
+    areaDoFormulario.current?.scrollIntoView({ block: 'center' })
+    areaDoFormulario.current
+      ?.querySelector<HTMLInputElement>('input')
+      ?.focus()
+  }, [formularioAberto])
 
   // A guarda contra resposta atrasada vale para toda carga, a do efeito e
   // as disparadas depois de salvar ou excluir. Antes só a do efeito tinha,
@@ -183,6 +200,7 @@ export function ConteudoDetalhe() {
     }
 
     definirErro(null)
+    definirConteudoSalvo(false)
     definirEnviando(true)
 
     try {
@@ -192,6 +210,7 @@ export function ConteudoDetalhe() {
       })
 
       await carregarConteudo()
+      definirConteudoSalvo(true)
     } catch (falha) {
       definirErro(mensagemDe(falha, 'Não foi possível salvar o conteúdo.'))
     } finally {
@@ -204,6 +223,7 @@ export function ConteudoDetalhe() {
       return
     }
 
+    definirErro(null)
     definirEnviando(true)
 
     try {
@@ -220,6 +240,10 @@ export function ConteudoDetalhe() {
   }
 
   function abrirNovaMedicao() {
+    // Cada ação começa com a tela limpa. O erro que sobrava descrevia o
+    // que o usuário tentou antes, e passava a acusar o que ele está
+    // fazendo agora.
+    definirErro(null)
     definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(null)
     definirMedicao(medicaoVazia())
@@ -227,6 +251,7 @@ export function ConteudoDetalhe() {
   }
 
   function abrirEdicaoDaMedicao(metrica: Metrica) {
+    definirErro(null)
     definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(metrica.id)
     definirMedicao({
@@ -248,14 +273,38 @@ export function ConteudoDetalhe() {
     }
 
     definirErro(null)
+
+    const medidas = {
+      visualizacoes: inteiroDigitado(medicao.visualizacoes),
+      curtidas: inteiroDigitado(medicao.curtidas),
+      comentarios: inteiroDigitado(medicao.comentarios),
+      compartilhamentos: inteiroDigitado(medicao.compartilhamentos),
+      alcance: inteiroDigitado(medicao.alcance),
+    }
+
+    // Recusar antes de chamar a API. O campo numérico aceita "12.000" e
+    // Number() lê isso como 12, então gravar seria trocar doze mil por
+    // doze e contaminar o painel com um número que ninguém digitou.
+    const recusada = Object.values(medidas).some(
+      (medida) => medida === null,
+    )
+
+    if (recusada) {
+      definirErro(
+        'Confira os números da medição. Use apenas números inteiros, ' +
+          'com ou sem ponto de milhar, como 12000 ou 12.000.',
+      )
+      return
+    }
+
     definirEnviando(true)
 
     const dados = {
-      visualizacoes: Number(medicao.visualizacoes),
-      curtidas: Number(medicao.curtidas),
-      comentarios: Number(medicao.comentarios),
-      compartilhamentos: Number(medicao.compartilhamentos),
-      alcance: Number(medicao.alcance),
+      visualizacoes: medidas.visualizacoes as number,
+      curtidas: medidas.curtidas as number,
+      comentarios: medidas.comentarios as number,
+      compartilhamentos: medidas.compartilhamentos as number,
+      alcance: medidas.alcance as number,
       data_referencia: medicao.data_referencia,
     }
 
@@ -288,6 +337,7 @@ export function ConteudoDetalhe() {
       return
     }
 
+    definirErro(null)
     definirEnviando(true)
 
     try {
@@ -320,6 +370,9 @@ export function ConteudoDetalhe() {
   }
 
   function alterarConteudo(campo: keyof DadosEditaveis, valor: string) {
+    // Editar de novo desfaz o "salvas": o que está na tela deixou de ser
+    // o que está gravado.
+    definirConteudoSalvo(false)
     definirDadosDoConteudo((atual) => ({ ...atual, [campo]: valor }))
   }
 
@@ -362,7 +415,10 @@ export function ConteudoDetalhe() {
         </button>
       </header>
 
-      {erro !== null && (
+      {/* Com o formulário de medição aberto, o erro é dele e aparece junto
+          dos botões. Repetir aqui em cima dava duas cópias da mesma frase
+          em tela grande e nenhuma visível em tela pequena. */}
+      {erro !== null && !formularioAberto && (
         <p className={estilos.erro} role="alert">
           {erro}
         </p>
@@ -371,6 +427,7 @@ export function ConteudoDetalhe() {
       <FormularioDoConteudo
         dados={dadosDoConteudo}
         enviando={enviando}
+        salvo={conteudoSalvo}
         aoAlterar={alterarConteudo}
         aoEnviar={salvarConteudo}
       />
@@ -390,14 +447,23 @@ export function ConteudoDetalhe() {
       )}
 
       {formularioAberto && (
-        <FormularioDaMedicao
-          dados={medicao}
-          enviando={enviando}
-          dataDaPublicacao={conteudo.data_publicacao}
-          aoAlterar={alterarMedicao}
-          aoEnviar={salvarMedicao}
-          aoCancelar={() => definirFormularioAberto(false)}
-        />
+        <div ref={areaDoFormulario}>
+          <FormularioDaMedicao
+            dados={medicao}
+            enviando={enviando}
+            erro={erro}
+            dataEmEdicao={
+              medicaoEmEdicao === null ? null : medicao.data_referencia
+            }
+            dataDaPublicacao={conteudo.data_publicacao}
+            aoAlterar={alterarMedicao}
+            aoEnviar={salvarMedicao}
+            aoCancelar={() => {
+              definirErro(null)
+              definirFormularioAberto(false)
+            }}
+          />
+        </div>
       )}
 
       {metricas !== null && metricas.length === 0 && (

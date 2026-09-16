@@ -98,11 +98,16 @@ def _tradutor(
 ):
     async def traduzir(
         _request: Request,
-        _excecao: Exception,
+        excecao: Exception,
     ) -> JSONResponse:
+        # A mensagem da exceção vence o texto do mapa quando existe. O
+        # serviço sabe dizer "A data de referência não pode estar no
+        # futuro", e o usuário lia "Dados da métrica inválidos". Todas as
+        # mensagens levantadas são literais do código, nenhuma carrega
+        # texto de origem externa.
         return JSONResponse(
             status_code=codigo,
-            content={"detail": detalhe},
+            content={"detail": str(excecao) or detalhe},
             headers=cabecalhos,
         )
 

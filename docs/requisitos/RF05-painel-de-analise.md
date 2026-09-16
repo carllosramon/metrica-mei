@@ -58,7 +58,15 @@ E **não** como média aritmética dos índices individuais. A média trata todo
 
 O campo se chama `engajamento_geral`, e não `engajamento_medio`, porque o valor não é uma média.
 
-Alcance total zero devolve nulo, pela mesma razão do RF04.
+### Só medições com alcance entram no índice
+
+Entram nesses totais apenas as medições com alcance maior que zero. Somar os totais é o mesmo que ponderar os índices individuais pelo alcance de cada um, e uma medição de alcance zero tem peso zero nessa conta. Deixá-la contribuir com as interações, mas não com a base, cobra as curtidas de um conteúdo do alcance de outro: dez curtidas em cem de alcance somadas a noventa curtidas sem alcance devolviam 100%, dez vezes o índice do único conteúdo que tinha índice. Um indicador consolidado acima do índice de todos os conteúdos que ele consolida não descreve a conta, e o erro cresce justamente quando o usuário registra menos.
+
+Alcance zero é o valor com que o formulário chega preenchido, então é também o valor de "não anotei". Medição com interações e sem alcance é registro incompleto, não post que não alcançou ninguém, porque quem curtiu foi alcançado.
+
+As medições excluídas do índice continuam inteiras nos cinco totais brutos, em `conteudos_com_metricas` e no ranking da seção 6. O que falta nelas é base de cálculo, não registro. A consequência assumida é que o percentual exibido pode não fechar com a divisão dos totais mostrados ao lado dele, quando existe medição sem alcance.
+
+Sem nenhuma medição com alcance, o campo devolve nulo, pela mesma razão do RF04.
 
 ## 5. Desempenho por plataforma
 
@@ -74,7 +82,9 @@ Ordenado por alcance total decrescente: a rede onde o usuário alcança mais pes
 
 Uma rede onde o usuário publicou e ainda não mediu entra na tabela com totais zero, `conteudos_com_metricas` zero e índice nulo. Omiti-la esconderia justamente a informação de que falta medir ali, e o usuário não teria como notar a ausência.
 
-Sem alcance para comparar, essas redes ficam por último na ordenação.
+Sem alcance para comparar, essas redes ficam por último na ordenação, inclusive quando empatam em zero com uma rede que já tem medição.
+
+O índice da rede segue a regra da seção 4: medição sem alcance fica fora da conta do índice e dentro dos totais brutos da rede. Se valesse só no topo, a linha da rede e o cartão destacado mostrariam números diferentes sobre as mesmas medições.
 
 ### Agrupamento ignora maiúsculas
 
@@ -137,8 +147,8 @@ Ausência de dados não é erro: é o estado inicial de toda conta recém-criada
 1. `GET /painel` responde `200` com os totais gerais, o desempenho por plataforma e o ranking;
 2. cada conteúdo contribui apenas com a sua medição mais recente;
 3. conteúdos sem medição são contados em `total_conteudos` e não em `conteudos_com_metricas`;
-4. `engajamento_geral` é calculado sobre os totais, com duas casas decimais;
-5. `engajamento_geral` é nulo quando o alcance total é zero;
+4. `engajamento_geral` é calculado sobre os totais das medições com alcance maior que zero, com duas casas decimais, e uma medição de alcance zero não altera o índice das demais;
+5. `engajamento_geral` é nulo quando nenhuma medição tem alcance, e os totais brutos continuam somando também as medições sem alcance;
 6. o desempenho por plataforma agrupa as redes ignorando diferença de maiúsculas;
 7. o desempenho por plataforma é ordenado por alcance decrescente;
 8. cada rede traz `total_conteudos` com todos os seus conteúdos e `conteudos_com_metricas` só com os medidos;
@@ -154,7 +164,7 @@ Ausência de dados não é erro: é o estado inicial de toda conta recém-criada
 
 | Critério | Verificado em |
 |---|---|
-| 1 a 5, 11, 12 | `tests/unit/test_dashboard_service.py` |
+| 1 a 5, 11, 12 | `tests/unit/test_dashboard_service.py`, `frontend/e2e/painel-consolidado.spec.ts` (duas redes e duas datas, ponta a ponta) |
 | 6, 7 | `tests/unit/test_dashboard_service.py` |
 | 8, 9 | `tests/unit/test_dashboard_service.py`, `frontend/src/paginas/Painel.test.tsx` |
 | 10 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |

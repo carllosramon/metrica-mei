@@ -10,9 +10,14 @@ from app.database.connection import Base
 
 config = context.config
 
+# O set_main_option grava num ConfigParser, que trata % como início de
+# interpolação. Uma senha com caractere codificado, como %40 no lugar de
+# arroba, derruba o alembic upgrade head, que é o primeiro comando de
+# qualquer implantação, enquanto a aplicação sobe normalmente com a
+# mesma URL. Dobrar o sinal é o escape que o ConfigParser espera.
 config.set_main_option(
     "sqlalchemy.url",
-    get_settings().database_url,
+    get_settings().database_url.replace("%", "%%"),
 )
 
 if config.config_file_name is not None:

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { ErroDaApi } from '../api/cliente'
 import { buscarPainel } from '../api/painel'
@@ -68,6 +69,28 @@ export function Painel() {
 
       {erro === null && dados === null && <p>Carregando o painel…</p>}
 
+      {/* Quem chega sem nada cadastrado caía num painel zerado, sem link
+          e sem saber que a primeira etapa é outra tela. O bloco explica
+          a ordem das coisas e leva para o começo dela. */}
+      {dados !== null && dados.total_conteudos === 0 && (
+        <section className={estilos.primeiroUso}>
+          <h2 className={estilos.tituloDoPrimeiroUso}>
+            Você ainda não cadastrou nenhum conteúdo
+          </h2>
+
+          <p>
+            Não há nada para somar aqui por enquanto. Funciona assim:
+            primeiro você cadastra uma publicação que já fez. Depois abre
+            essa publicação e anota os números que a rede social mostra
+            sobre ela. Só então este painel começa a comparar suas redes.
+          </p>
+
+          <Link className={estilos.acao} to="/conteudos">
+            Cadastrar minha primeira publicação
+          </Link>
+        </section>
+      )}
+
       {dados !== null && (
         <>
           <section className={estilos.indicadores}>
@@ -114,10 +137,21 @@ export function Painel() {
 
           {dados.desempenho_por_plataforma.length === 0 ? (
             <p className={estilos.vazio}>
-              Registre medições para comparar o desempenho das suas redes.
+              {dados.total_conteudos === 0
+                ? 'Comece cadastrando um conteúdo. A comparação entre redes aparece depois que houver o que comparar.'
+                : 'Registre medições para comparar o desempenho das suas redes.'}
             </p>
           ) : (
             <>
+              {/* Sem esta linha o usuário não sabe qual coluna responde
+                  "qual rede rende mais", e escolhe uma no chute. */}
+              <p className={estilos.leitura}>
+                Ordenado pelo alcance, da rede onde você chegou a mais
+                pessoas para a que chegou a menos. Se quiser saber onde o
+                público reage mais, e não onde ele só é maior, compare a
+                coluna Engajamento.
+              </p>
+
               <BarrasPorPlataforma
                 plataformas={dados.desempenho_por_plataforma}
               />
@@ -173,13 +207,26 @@ export function Painel() {
 
           <h2 className={estilos.secao}>Conteúdos de maior alcance</h2>
 
+          {/* Mandar "registre medições" para quem não tem conteúdo é
+              pedir um passo que ainda não dá para dar. */}
           {dados.maiores_alcances.length === 0 ? (
             <p className={estilos.vazio}>
-              Nenhuma medição registrada ainda. Registre métricas dos seus
-              conteúdos para ver o ranking.
+              {dados.total_conteudos === 0
+                ? 'O ranking compara os conteúdos que você já cadastrou, e ainda não há nenhum.'
+                : 'Nenhuma medição registrada ainda. Registre métricas dos seus conteúdos para ver o ranking.'}
             </p>
           ) : (
-            <div className={estilos.moldura}>
+            <>
+              {/* A ressalva é a razão registrada no RF05 para o índice
+                  aparecer ao lado do alcance, e nunca tinha chegado à
+                  tela: o título empurra para a leitura contrária. */}
+              <p className={estilos.leitura}>
+                Estão ordenados por alcance. Alcançar mais pessoas não é a
+                mesma coisa que ir melhor, então olhe o engajamento ao
+                lado para saber qual post fez mais gente reagir.
+              </p>
+
+              <div className={estilos.moldura}>
               <table className={estilos.tabela}>
                 <thead>
                   <tr>
@@ -197,7 +244,14 @@ export function Painel() {
                 <tbody>
                   {dados.maiores_alcances.map((conteudo) => (
                     <tr key={conteudo.conteudo_id}>
-                      <td>{conteudo.titulo}</td>
+                      {/* Do painel para o conteúdo em um clique. O
+                          identificador já vinha na resposta e só era
+                          usado como chave da linha. */}
+                      <td>
+                        <Link to={`/conteudos/${conteudo.conteudo_id}`}>
+                          {conteudo.titulo}
+                        </Link>
+                      </td>
                       <td>{conteudo.plataforma}</td>
                       <td>{formatarData(conteudo.data_referencia)}</td>
                       <td className={estilos.numerico}>
@@ -210,7 +264,8 @@ export function Painel() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </>
       )}

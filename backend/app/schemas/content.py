@@ -25,6 +25,13 @@ class ContentResponse(BaseModel):
     )
 
 
+class ContentListItemResponse(ContentResponse):
+    # Só a lista traz o campo. Na resposta de um conteúdo isolado ele
+    # seria sempre nulo, e nulo ali significaria "nunca medido" para um
+    # conteúdo que pode ter histórico inteiro.
+    ultima_medicao: date | None
+
+
 class ContentUpdateRequest(BaseModel):
     titulo: str | None = None
     plataforma: str | None = None

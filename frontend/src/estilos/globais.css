@@ -3,7 +3,10 @@
   --cor-superficie: #ffffff;
   --cor-borda: #dfe3e8;
   --cor-texto: #1f2933;
-  --cor-texto-suave: #66727f;
+  /* Escurecida para passar em 4,5:1 sobre o fundo da página e sobre o
+     cartão destacado. No tom anterior, #66727f, o rótulo do cartão dava
+     4,27:1 e os textos de estado vazio davam 4,4996:1. */
+  --cor-texto-suave: #5f6b78;
   --cor-destaque: #2f6f4f;
   --cor-destaque-suave: #e6f2ec;
   --cor-erro: #b3261e;

@@ -17,10 +17,20 @@ export function formatarPercentual(valor: number | null): string {
   })}%`
 }
 
+const DATA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/
+
 export function formatarData(isoDaData: string): string {
   // new Date('2026-08-25') é interpretado como meia-noite UTC, o que no
   // fuso do Brasil volta um dia. Separar os campos evita a data errada.
-  const [ano, mes, dia] = isoDaData.split('-')
+  const partes = DATA_ISO.exec(isoDaData)
+
+  // Sem conferir o formato, um texto vazio ou um carimbo de data e hora
+  // saíam da função como "undefined/undefined/" e iam parar na tela.
+  if (partes === null) {
+    return '—'
+  }
+
+  const [, ano, mes, dia] = partes
 
   return `${dia}/${mes}/${ano}`
 }

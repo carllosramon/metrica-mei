@@ -10,6 +10,7 @@ from app.dependencies import (
 )
 from app.schemas.content import (
     ContentCreateRequest,
+    ContentListItemResponse,
     ContentResponse,
     ContentUpdateRequest,
 )
@@ -26,6 +27,11 @@ _DADOS_INVALIDOS = {
         "description": (
             "Título, plataforma ou tipo fora dos limites de tamanho, data "
             "de publicação no futuro, ou URL sem esquema http/https."
+            "\n\n"
+            "A URL precisa ser um endereço completo, e não só o esquema: "
+            "`https://` sozinho é recusado. O esquema aceita caixa alta, "
+            "porque `HTTPS://` é válido, e o endereço inteiro cabe em 500 "
+            "caracteres."
         ),
     },
 }
@@ -65,11 +71,15 @@ def create_content(
 
 @router.get(
     "/conteudos",
-    response_model=list[ContentResponse],
+    response_model=list[ContentListItemResponse],
     summary="Listar meus conteúdos",
     description=(
         "Devolve apenas os conteúdos do usuário autenticado, dos mais "
         "recentes para os mais antigos pela data de publicação."
+        "\n\n"
+        "`ultima_medicao` é a data de referência da medição mais recente "
+        "do conteúdo, e vem nula quando ele nunca foi medido. É o que "
+        "responde, sem abrir um por um, o que está faltando anotar."
     ),
     responses=SEM_SESSAO,
 )

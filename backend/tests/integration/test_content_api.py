@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import pytest
 
 from app.services.content_service import InvalidContentError
@@ -864,3 +866,142 @@ def test_update_content_rejects_publication_date_after_existing_metric(
     assert response.json() == {
         "detail": "Dados do conteúdo inválidos."
     }
+
+
+def test_create_content_rejects_malformed_url(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    # O colchete de IPv6 aberto e não fechado fazia o urlsplit estourar,
+    # e a resposta era 500 em vez do 422 que a documentação promete.
+    response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Post",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": date.today().isoformat(),
+            "url_publicacao": "http://[::1",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "A URL informada não é um endereço válido."
+    }
+
+
+def test_list_contents_reports_date_of_last_metric(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    medido = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Conteúdo medido",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-18",
+        },
+    ).json()
+
+    client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Conteúdo sem medição",
+            "plataforma": "TikTok",
+            "tipo": "Vídeo",
+            "data_publicacao": "2026-08-19",
+        },
+    )
+
+    for dia in ("2026-08-25", "2026-08-20"):
+        resposta = client.post(
+            f"/conteudos/{medido['id']}/metricas",
+            headers=headers,
+            json={
+                "visualizacoes": 100,
+                "curtidas": 10,
+                "comentarios": 2,
+                "compartilhamentos": 1,
+                "alcance": 80,
+                "data_referencia": dia,
+            },
+        )
+
+        assert resposta.status_code == 201
+
+    body = client.get(
+        "/conteudos",
+        headers=headers,
+    ).json()
+
+    por_titulo = {item["titulo"]: item for item in body}
+
+    # A mais recente é a de maior data de referência, não a última
+    # gravada, e a lista precisa dela para dizer o que já foi anotado.
+    assert (
+        por_titulo["Conteúdo medido"]["ultima_medicao"]
+        == "2026-08-25"
+    )
+
+    assert (
+        por_titulo["Conteúdo sem medição"]["ultima_medicao"]
+        is None
+    )
+
+
+
+def test_publication_date_uses_the_business_calendar(
+    client,
+    monkeypatch,
+):
+    # O conftest troca business_today por date.today() em toda a suíte,
+    # para os testes não dependerem do fuso do runner. Com isso, o
+    # caminho da API deixava de exercitar o relógio de negócio: trocar
+    # business_today por date.today() no serviço passava despercebido,
+    # porque na máquina do desenvolvedor as duas respondem igual.
+    #
+    # Aqui o relógio responde uma data fixa distante de hoje, e a regra
+    # precisa obedecer a ela, não ao calendário da máquina.
+    dia_de_negocio = date(2026, 9, 10)
+
+    monkeypatch.setattr(
+        "app.services.content_service.business_today",
+        lambda: dia_de_negocio,
+    )
+
+    headers = authenticated_headers(client)
+
+    aceito = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Publicado no dia de negócio",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": dia_de_negocio.isoformat(),
+        },
+    )
+
+    assert aceito.status_code == 201
+
+    recusado = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Publicado no dia seguinte",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": (
+                dia_de_negocio + timedelta(days=1)
+            ).isoformat(),
+        },
+    )
+
+    assert recusado.status_code == 422

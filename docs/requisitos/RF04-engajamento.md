@@ -77,7 +77,7 @@ O campo `engajamento` acompanha todas as respostas de métrica — `POST`, `GET`
 | 1, 2, 3, 4 | `tests/unit/test_engagement.py` |
 | 5, 8 | `tests/unit/test_metric_service_engagement.py`, `tests/integration/test_metric_engagement_api.py` |
 | 6, 7 | ausência de `engajamento` em `MetricCreateRequest`/`MetricUpdateRequest` e na migration `0003_create_metricas` |
-| 9 | `tests/unit/test_dashboard_service.py` |
+| 9 | `tests/unit/test_dashboard_service.py` (`test_dashboard_engagement_agrees_with_the_shared_calculation`, que confere o índice do painel contra o mesmo `engagement_of` da tela de detalhe) |
 | 10 | `frontend/src/formatacao.test.ts`, `frontend/src/paginas/Painel.test.tsx` |
 
 Requisitos relacionados: RF03 (valores de origem), RF05 (consolidação), RNF01, RNF02.

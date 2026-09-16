@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 
-from app.controllers.respostas import SEM_SESSAO
+from app.controllers.respostas import SEM_SESSAO, prazo_do_token
 from app.dependencies import get_auth_service, get_current_user
 from app.domain.user import User
 from app.schemas.auth import (
@@ -25,8 +25,9 @@ router = APIRouter(
     summary="Criar conta",
     description=(
         "Cadastra um usuário. O nome tem entre 2 e 100 caracteres e a senha "
-        "no mínimo 8. A senha é gravada apenas como hash Argon2, nunca em "
-        "texto, e o e-mail é único, comparado sem diferenciar maiúsculas."
+        "entre 8 e 128, medidos em caracteres. A senha é gravada apenas "
+        "como hash Argon2, nunca em texto, e o e-mail é único, comparado "
+        "sem diferenciar maiúsculas."
         "\n\n"
         "A resposta traz o usuário criado, e não um token: use "
         "`POST /auth/login` em seguida para abrir a sessão."
@@ -53,8 +54,8 @@ def register(
     response_model=TokenResponse,
     summary="Entrar e obter o token",
     description=(
-        "Devolve um token válido por trinta minutos, a ser enviado no "
-        "cabeçalho `Authorization` das demais rotas. Não há renovação "
+        f"Devolve um token válido por {prazo_do_token()}, a ser enviado "
+        "no cabeçalho `Authorization` das demais rotas. Não há renovação "
         "automática: vencido o prazo, é preciso entrar de novo."
         "\n\n"
         "E-mail inexistente e senha errada produzem a mesma resposta. "

@@ -96,3 +96,37 @@ def test_downgrade_de_um_passo_remove_a_url_de_publicacao(
         assert "titulo" in colunas
     finally:
         get_settings.cache_clear()
+
+
+def test_upgrade_survives_percent_in_the_database_url(
+    tmp_path,
+    monkeypatch,
+):
+    """O `%` da URL não pode derrubar a primeira migration.
+
+    O env.py entrega a URL ao ConfigParser do Alembic, que lê `%` como
+    início de interpolação. Uma senha com caractere codificado, como
+    `%40` no lugar da arroba, é comum em PostgreSQL gerenciado, e fazia
+    o `alembic upgrade head` estourar — o primeiro comando de qualquer
+    implantação — enquanto a aplicação subia normalmente com a mesma
+    URL. O SQLite aqui só serve de veículo: o que está sendo exercitado
+    é o escape, não o dialeto.
+    """
+    database_path = tmp_path / "senha%40codificada.db"
+    database_url = f"sqlite:///{database_path}"
+
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        database_url,
+    )
+
+    get_settings.cache_clear()
+
+    try:
+        command.upgrade(Config("alembic.ini"), "head")
+
+        assert TABELAS.issubset(
+            tabelas_existentes(database_url)
+        )
+    finally:
+        get_settings.cache_clear()

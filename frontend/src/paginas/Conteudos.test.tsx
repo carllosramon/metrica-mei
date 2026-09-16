@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { criarConteudo, listarConteudos } from '../api/conteudos'
-import type { Conteudo } from '../api/tipos'
+import type { ConteudoDaLista } from '../api/tipos'
 import { ContextoAutenticacao } from '../autenticacao/contexto'
 import type { ValorDaAutenticacao } from '../autenticacao/contexto'
 import { adiar } from '../testes/adiar'
@@ -30,7 +30,7 @@ const autenticacao: ValorDaAutenticacao = {
   sair: vi.fn(),
 }
 
-const reels: Conteudo = {
+const reels: ConteudoDaLista = {
   id: 7,
   titulo: 'Reels sobre preço',
   plataforma: 'Instagram',
@@ -38,6 +38,7 @@ const reels: Conteudo = {
   data_publicacao: '2026-08-21',
   criado_em: '2026-08-21T10:00:00',
   url_publicacao: 'https://instagram.com/p/abc',
+  ultima_medicao: '2026-08-22',
 }
 
 function renderizar() {
@@ -65,6 +66,20 @@ describe('Conteudos', () => {
     expect(screen.getByText('21/08/2026')).toBeInTheDocument()
   })
 
+  it('diz quando cada conteúdo foi medido pela última vez', async () => {
+    vi.mocked(listarConteudos).mockResolvedValue([
+      reels,
+      { ...reels, id: 8, titulo: 'Carrossel novo', ultima_medicao: null },
+    ])
+
+    renderizar()
+
+    // A coluna responde "o que falta anotar" sem abrir conteúdo por
+    // conteúdo, que é a rotina que o sistema se propõe a apoiar.
+    expect(await screen.findByText('22/08/2026')).toBeInTheDocument()
+    expect(screen.getByText('nunca medido')).toBeInTheDocument()
+  })
+
   it('orienta quem ainda não cadastrou nada', async () => {
     vi.mocked(listarConteudos).mockResolvedValue([])
 
@@ -73,6 +88,31 @@ describe('Conteudos', () => {
     expect(
       await screen.findByText(/Nenhum conteúdo cadastrado ainda/),
     ).toBeInTheDocument()
+  })
+
+  it('mantém a falha de carga visível depois de abrir o formulário', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(listarConteudos).mockRejectedValue(
+      new Error('conexão recusada'),
+    )
+
+    renderizar()
+
+    expect(
+      await screen.findByText(/Não foi possível carregar os conteúdos/),
+    ).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('button', { name: 'Novo conteúdo' }))
+
+    // Abrir o formulário limpa o erro do cadastro, não o da carga. Se
+    // limpasse os dois, a lista continuaria nula e sem aviso, e a tela
+    // voltaria a "Carregando…" sem nunca sair de lá.
+    expect(
+      screen.getByText(/Não foi possível carregar os conteúdos/),
+    ).toBeInTheDocument()
+
+    expect(screen.queryByText('Carregando…')).not.toBeInTheDocument()
   })
 
   it('envia o formulário e recarrega a lista', async () => {
@@ -121,7 +161,7 @@ describe('Conteudos', () => {
 
     // A primeira listagem fica presa. O cadastro dispara uma segunda, que
     // responde antes, e só depois a primeira chega, já velha.
-    const cargaInicial = adiar<Conteudo[]>()
+    const cargaInicial = adiar<ConteudoDaLista[]>()
 
     vi.mocked(listarConteudos)
       .mockReturnValueOnce(cargaInicial.promessa)

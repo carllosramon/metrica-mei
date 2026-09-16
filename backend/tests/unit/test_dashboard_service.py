@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from app.domain.content import Content
 from app.domain.metric import Metric
 from app.services.dashboard_service import DashboardService
+from app.services.engagement import engagement_of
 from tests.dubles.in_memory_content_repository import (
     InMemoryContentRepository,
 )
@@ -228,6 +229,19 @@ def test_ranking_is_limited_to_five_contents():
     assert dashboard.total_conteudos == 6
     assert len(dashboard.maiores_alcances) == 5
 
+    # Contar cinco não diz quais cinco. Trocar o corte do começo para o
+    # fim da lista devolveria os cinco piores, no mesmo número, e a
+    # contagem continuaria passando.
+    assert [
+        item.titulo for item in dashboard.maiores_alcances
+    ] == [
+        "Conteúdo 5",
+        "Conteúdo 4",
+        "Conteúdo 3",
+        "Conteúdo 2",
+        "Conteúdo 1",
+    ]
+
 
 def test_ranking_keeps_content_without_reach():
     service, content_repository, metric_repository = make_service()
@@ -397,6 +411,96 @@ def test_platform_without_any_measurement_still_appears():
     assert tiktok.total_alcance == 0
     assert tiktok.engajamento is None
 
+
+def test_platform_without_measurement_is_last_even_tied_at_zero():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(
+        content_repository,
+        titulo="Vídeo",
+        plataforma="Zeta",
+    )
+    create_content(
+        content_repository,
+        titulo="Post sem medição",
+        plataforma="Alfa",
+    )
+
+    create_metric(metric_repository, medido.id, alcance=0, curtidas=5)
+
+    dashboard = service.get(user_id=1)
+
+    # As duas redes empatam em alcance zero. Com desempate só pelo nome, a
+    # que nunca foi medida vinha primeiro, contra o critério 9 do RF05.
+    assert [
+        item.plataforma
+        for item in dashboard.desempenho_por_plataforma
+    ] == ["Zeta", "Alfa"]
+
+
+def test_engagement_ignores_measurement_without_reach():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(content_repository, titulo="Com alcance")
+    sem_alcance = create_content(
+        content_repository,
+        titulo="Sem alcance",
+    )
+
+    create_metric(metric_repository, medido.id, curtidas=10, alcance=100)
+    create_metric(
+        metric_repository,
+        sem_alcance.id,
+        curtidas=90,
+        alcance=0,
+    )
+
+    dashboard = service.get(user_id=1)
+
+    # As 90 curtidas não têm alcance pelo qual dividir. Somadas ao
+    # numerador, eram cobradas do alcance do outro conteúdo e levavam a
+    # conta a 100%, dez vezes o índice do único conteúdo que tem índice.
+    assert dashboard.engajamento_geral == 10.0
+
+    # O usuário digitou aquelas curtidas: os totais brutos continuam
+    # inteiros, e o que muda é só a conta do índice.
+    assert dashboard.total_curtidas == 100
+    assert dashboard.total_alcance == 100
+    assert dashboard.conteudos_com_metricas == 2
+
+
+def test_platform_engagement_ignores_measurement_without_reach():
+    service, content_repository, metric_repository = make_service()
+
+    medido = create_content(
+        content_repository,
+        titulo="Reels",
+        plataforma="Instagram",
+    )
+    sem_alcance = create_content(
+        content_repository,
+        titulo="Story",
+        plataforma="Instagram",
+    )
+
+    create_metric(metric_repository, medido.id, curtidas=10, alcance=100)
+    create_metric(
+        metric_repository,
+        sem_alcance.id,
+        curtidas=90,
+        alcance=0,
+    )
+
+    dashboard = service.get(user_id=1)
+
+    instagram = dashboard.desempenho_por_plataforma[0]
+
+    # A rede usa a mesma regra do topo. Se divergisse, a linha da tabela
+    # contradiria o cartão destacado sobre as mesmas duas medições.
+    assert instagram.engajamento == 10.0
+    assert instagram.total_curtidas == 100
+    assert instagram.conteudos_com_metricas == 2
+
     # Sem alcance para comparar, a rede não medida fica por último.
     assert dashboard.desempenho_por_plataforma[0].plataforma == "Instagram"
 
@@ -492,3 +596,34 @@ def test_dashboard_ignores_contents_of_other_users():
         item.plataforma
         for item in dashboard.desempenho_por_plataforma
     ] == ["Instagram"]
+
+
+def test_dashboard_engagement_agrees_with_the_shared_calculation():
+    # O RF04 exige que o painel reaproveite o cálculo, e não faça o
+    # próprio. Isso não tinha teste: uma segunda implementação, com
+    # arredondamento diferente ou outra ordem de soma, passaria calada
+    # e o índice do painel divergiria do que a tela de detalhe mostra
+    # para a mesma medição.
+    service, content_repository, metric_repository = make_service()
+
+    content = create_content(content_repository)
+
+    metric = create_metric(
+        metric_repository,
+        content.id,
+        curtidas=37,
+        comentarios=11,
+        compartilhamentos=5,
+        alcance=433,
+    )
+
+    dashboard = service.get(user_id=1)
+
+    esperado = engagement_of(metric)
+
+    assert dashboard.engajamento_geral == esperado
+    assert dashboard.maiores_alcances[0].engajamento == esperado
+    assert (
+        dashboard.desempenho_por_plataforma[0].engajamento
+        == esperado
+    )
