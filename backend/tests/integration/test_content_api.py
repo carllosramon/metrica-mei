@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from app.services.content_service import InvalidContentError
@@ -863,4 +865,29 @@ def test_update_content_rejects_publication_date_after_existing_metric(
     assert response.status_code == 422
     assert response.json() == {
         "detail": "Dados do conteúdo inválidos."
+    }
+
+
+def test_create_content_rejects_malformed_url(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    # O colchete de IPv6 aberto e não fechado fazia o urlsplit estourar,
+    # e a resposta era 500 em vez do 422 que a documentação promete.
+    response = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Post",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": date.today().isoformat(),
+            "url_publicacao": "http://[::1",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "A URL informada não é um endereço válido."
     }

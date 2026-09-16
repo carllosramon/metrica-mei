@@ -61,7 +61,15 @@ class ContentService:
         # manter a regra de negócio fora da camada de contrato. Conferir só
         # o prefixo deixava passar "https://" sem endereço e recusava
         # "HTTPS://", que é esquema válido, o esquema não distingue caixa.
-        partes = urlsplit(normalized)
+        try:
+            partes = urlsplit(normalized)
+        except ValueError as exc:
+            # Endereço com colchete de IPv6 aberto e não fechado faz o
+            # urlsplit estourar. Sem isto a API respondia 500 a uma URL
+            # que o usuário só digitou errado.
+            raise InvalidContentError(
+                "A URL informada não é um endereço válido."
+            ) from exc
 
         if partes.scheme.lower() not in ("http", "https"):
             raise InvalidContentError
