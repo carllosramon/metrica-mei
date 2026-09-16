@@ -382,7 +382,7 @@ def test_patch_metric_rejects_empty_payload(
 
     assert response.status_code == 422
     assert response.json() == {
-        "detail": "Dados da métrica inválidos."
+        "detail": "Informe pelo menos um campo para atualizar."
     }
 
 
@@ -411,7 +411,7 @@ def test_patch_metric_rejects_explicit_null(
 
     assert response.status_code == 422
     assert response.json() == {
-        "detail": "Dados da métrica inválidos."
+        "detail": "Os campos informados não podem ser nulos."
     }
 
 
@@ -435,7 +435,7 @@ def test_create_metric_rejects_negative_value(
 
     assert response.status_code == 422
     assert response.json() == {
-        "detail": "Dados da métrica inválidos."
+        "detail": "As métricas devem ser inteiras e maiores ou iguais a zero."
     }
 
 
@@ -461,7 +461,7 @@ def test_create_metric_rejects_value_above_integer_limit(
 
     assert response.status_code == 422
     assert response.json() == {
-        "detail": "Dados da métrica inválidos."
+        "detail": "As métricas precisam caber em 2147483647."
     }
 
 
@@ -492,7 +492,7 @@ def test_create_metric_rejects_reference_date_before_publication(
 
     assert response.status_code == 422
     assert response.json() == {
-        "detail": "Dados da métrica inválidos."
+        "detail": "A data de referência não pode ser anterior à publicação."
     }
 
 
@@ -518,7 +518,7 @@ def test_create_metric_rejects_future_reference_date(
 
     assert response.status_code == 422
     assert response.json() == {
-        "detail": "Dados da métrica inválidos."
+        "detail": "A data de referência não pode estar no futuro."
     }
 
 
