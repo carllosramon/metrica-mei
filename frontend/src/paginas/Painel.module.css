@@ -96,3 +96,34 @@
   background-color: var(--cor-erro-suave);
   color: var(--cor-erro);
 }
+
+/* Fica acima dos cartões porque, sem conteúdo cadastrado, todos eles
+   mostram zero e nenhum responde o que o usuário deveria fazer. */
+.primeiroUso {
+  margin-bottom: 28px;
+  padding: 24px;
+  border-left: 3px solid var(--cor-destaque);
+  border-radius: 0 var(--raio) var(--raio) 0;
+  background-color: var(--cor-destaque-suave);
+  max-width: 70ch;
+  line-height: 1.6;
+}
+
+.tituloDoPrimeiroUso {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.primeiroUso p {
+  margin: 0 0 18px;
+}
+
+.acao {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background-color: var(--cor-destaque);
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}

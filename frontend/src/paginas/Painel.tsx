@@ -69,6 +69,28 @@ export function Painel() {
 
       {erro === null && dados === null && <p>Carregando o painel…</p>}
 
+      {/* Quem chega sem nada cadastrado caía num painel zerado, sem link
+          e sem saber que a primeira etapa é outra tela. O bloco explica
+          a ordem das coisas e leva para o começo dela. */}
+      {dados !== null && dados.total_conteudos === 0 && (
+        <section className={estilos.primeiroUso}>
+          <h2 className={estilos.tituloDoPrimeiroUso}>
+            Você ainda não cadastrou nenhum conteúdo
+          </h2>
+
+          <p>
+            Não há nada para somar aqui por enquanto. Funciona assim:
+            primeiro você cadastra uma publicação que já fez. Depois abre
+            essa publicação e anota os números que a rede social mostra
+            sobre ela. Só então este painel começa a comparar suas redes.
+          </p>
+
+          <Link className={estilos.acao} to="/conteudos">
+            Cadastrar minha primeira publicação
+          </Link>
+        </section>
+      )}
+
       {dados !== null && (
         <>
           <section className={estilos.indicadores}>
@@ -115,7 +137,9 @@ export function Painel() {
 
           {dados.desempenho_por_plataforma.length === 0 ? (
             <p className={estilos.vazio}>
-              Registre medições para comparar o desempenho das suas redes.
+              {dados.total_conteudos === 0
+                ? 'Comece cadastrando um conteúdo. A comparação entre redes aparece depois que houver o que comparar.'
+                : 'Registre medições para comparar o desempenho das suas redes.'}
             </p>
           ) : (
             <>
@@ -183,10 +207,13 @@ export function Painel() {
 
           <h2 className={estilos.secao}>Conteúdos de maior alcance</h2>
 
+          {/* Mandar "registre medições" para quem não tem conteúdo é
+              pedir um passo que ainda não dá para dar. */}
           {dados.maiores_alcances.length === 0 ? (
             <p className={estilos.vazio}>
-              Nenhuma medição registrada ainda. Registre métricas dos seus
-              conteúdos para ver o ranking.
+              {dados.total_conteudos === 0
+                ? 'O ranking compara os conteúdos que você já cadastrou, e ainda não há nenhum.'
+                : 'Nenhuma medição registrada ainda. Registre métricas dos seus conteúdos para ver o ranking.'}
             </p>
           ) : (
             <>

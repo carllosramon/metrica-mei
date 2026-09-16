@@ -94,11 +94,39 @@ describe('Painel', () => {
   })
 
   it('orienta o usuário quando o ranking está vazio', async () => {
-    renderizarPainel(painelVazio)
+    renderizarPainel({ ...painelVazio, total_conteudos: 2 })
 
     expect(
       await screen.findByText(/Nenhuma medição registrada ainda/),
     ).toBeInTheDocument()
+  })
+
+  it('ensina o primeiro passo a quem não cadastrou nada', async () => {
+    renderizarPainel(painelVazio)
+
+    expect(
+      await screen.findByRole('heading', {
+        name: /ainda não cadastrou nenhum conteúdo/,
+      }),
+    ).toBeInTheDocument()
+
+    // O painel zerado não dizia que a primeira etapa é outra tela, e
+    // não levava até ela.
+    expect(
+      screen.getByRole('link', {
+        name: 'Cadastrar minha primeira publicação',
+      }),
+    ).toHaveAttribute('href', '/conteudos')
+
+    // E os estados vazios param de pedir medição de conteúdo que não
+    // existe, que é um passo impossível de dar.
+    expect(
+      screen.queryByText(/Nenhuma medição registrada ainda/),
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByText(/Registre medições para comparar/),
+    ).not.toBeInTheDocument()
   })
 
   it('lista os melhores conteúdos com data no formato brasileiro', async () => {
@@ -303,7 +331,7 @@ describe('Painel — desempenho por plataforma', () => {
   })
 
   it('orienta quando ainda não há plataforma medida', async () => {
-    renderizarPainel(painelVazio)
+    renderizarPainel({ ...painelVazio, total_conteudos: 2 })
 
     expect(
       await screen.findByText(
