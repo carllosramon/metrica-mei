@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -954,3 +954,54 @@ def test_list_contents_reports_date_of_last_metric(
         por_titulo["Conteúdo sem medição"]["ultima_medicao"]
         is None
     )
+
+
+
+def test_publication_date_uses_the_business_calendar(
+    client,
+    monkeypatch,
+):
+    # O conftest troca business_today por date.today() em toda a suíte,
+    # para os testes não dependerem do fuso do runner. Com isso, o
+    # caminho da API deixava de exercitar o relógio de negócio: trocar
+    # business_today por date.today() no serviço passava despercebido,
+    # porque na máquina do desenvolvedor as duas respondem igual.
+    #
+    # Aqui o relógio responde uma data fixa distante de hoje, e a regra
+    # precisa obedecer a ela, não ao calendário da máquina.
+    dia_de_negocio = date(2026, 9, 10)
+
+    monkeypatch.setattr(
+        "app.services.content_service.business_today",
+        lambda: dia_de_negocio,
+    )
+
+    headers = authenticated_headers(client)
+
+    aceito = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Publicado no dia de negócio",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": dia_de_negocio.isoformat(),
+        },
+    )
+
+    assert aceito.status_code == 201
+
+    recusado = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Publicado no dia seguinte",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": (
+                dia_de_negocio + timedelta(days=1)
+            ).isoformat(),
+        },
+    )
+
+    assert recusado.status_code == 422
