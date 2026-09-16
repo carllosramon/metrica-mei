@@ -26,7 +26,7 @@ import type { DadosDaMedicao } from './detalhe/FormularioDaMedicao'
 import { FormularioDoConteudo } from './detalhe/FormularioDoConteudo'
 import type { DadosEditaveis } from './detalhe/FormularioDoConteudo'
 import { TabelaDeMedicoes } from './detalhe/TabelaDeMedicoes'
-import { urlOuNulo } from './formularios'
+import { inteiroDigitado, urlOuNulo } from './formularios'
 
 // A data padrão é calculada na hora de abrir o formulário. Calculada no
 // carregamento do módulo, numa aba aberta depois da meia-noite ela ficava
@@ -248,14 +248,38 @@ export function ConteudoDetalhe() {
     }
 
     definirErro(null)
+
+    const medidas = {
+      visualizacoes: inteiroDigitado(medicao.visualizacoes),
+      curtidas: inteiroDigitado(medicao.curtidas),
+      comentarios: inteiroDigitado(medicao.comentarios),
+      compartilhamentos: inteiroDigitado(medicao.compartilhamentos),
+      alcance: inteiroDigitado(medicao.alcance),
+    }
+
+    // Recusar antes de chamar a API. O campo numérico aceita "12.000" e
+    // Number() lê isso como 12, então gravar seria trocar doze mil por
+    // doze e contaminar o painel com um número que ninguém digitou.
+    const recusada = Object.values(medidas).some(
+      (medida) => medida === null,
+    )
+
+    if (recusada) {
+      definirErro(
+        'Confira os números da medição. Use apenas números inteiros, ' +
+          'com ou sem ponto de milhar, como 12000 ou 12.000.',
+      )
+      return
+    }
+
     definirEnviando(true)
 
     const dados = {
-      visualizacoes: Number(medicao.visualizacoes),
-      curtidas: Number(medicao.curtidas),
-      comentarios: Number(medicao.comentarios),
-      compartilhamentos: Number(medicao.compartilhamentos),
-      alcance: Number(medicao.alcance),
+      visualizacoes: medidas.visualizacoes as number,
+      curtidas: medidas.curtidas as number,
+      comentarios: medidas.comentarios as number,
+      compartilhamentos: medidas.compartilhamentos as number,
+      alcance: medidas.alcance as number,
       data_referencia: medicao.data_referencia,
     }
 
