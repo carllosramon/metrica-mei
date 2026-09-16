@@ -220,6 +220,7 @@ export function ConteudoDetalhe() {
       return
     }
 
+    definirErro(null)
     definirEnviando(true)
 
     try {
@@ -236,6 +237,10 @@ export function ConteudoDetalhe() {
   }
 
   function abrirNovaMedicao() {
+    // Cada ação começa com a tela limpa. O erro que sobrava descrevia o
+    // que o usuário tentou antes, e passava a acusar o que ele está
+    // fazendo agora.
+    definirErro(null)
     definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(null)
     definirMedicao(medicaoVazia())
@@ -243,6 +248,7 @@ export function ConteudoDetalhe() {
   }
 
   function abrirEdicaoDaMedicao(metrica: Metrica) {
+    definirErro(null)
     definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(metrica.id)
     definirMedicao({
@@ -328,6 +334,7 @@ export function ConteudoDetalhe() {
       return
     }
 
+    definirErro(null)
     definirEnviando(true)
 
     try {

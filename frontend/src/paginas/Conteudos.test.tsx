@@ -75,6 +75,31 @@ describe('Conteudos', () => {
     ).toBeInTheDocument()
   })
 
+  it('mantém a falha de carga visível depois de abrir o formulário', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(listarConteudos).mockRejectedValue(
+      new Error('conexão recusada'),
+    )
+
+    renderizar()
+
+    expect(
+      await screen.findByText(/Não foi possível carregar os conteúdos/),
+    ).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('button', { name: 'Novo conteúdo' }))
+
+    // Abrir o formulário limpa o erro do cadastro, não o da carga. Se
+    // limpasse os dois, a lista continuaria nula e sem aviso, e a tela
+    // voltaria a "Carregando…" sem nunca sair de lá.
+    expect(
+      screen.getByText(/Não foi possível carregar os conteúdos/),
+    ).toBeInTheDocument()
+
+    expect(screen.queryByText('Carregando…')).not.toBeInTheDocument()
+  })
+
   it('envia o formulário e recarrega a lista', async () => {
     const usuario = userEvent.setup()
 
