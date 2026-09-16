@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Painel as DadosDoPainel } from '../api/tipos'
@@ -42,9 +44,19 @@ const autenticacao: ValorDaAutenticacao = {
 function renderizarPainel(dados: DadosDoPainel) {
   vi.mocked(buscarPainel).mockResolvedValue(dados)
 
+  // O ranking leva ao conteúdo por um link, então a página precisa de
+  // rota. A de destino existe só para o link ter para onde apontar.
   return render(
     <ContextoAutenticacao.Provider value={autenticacao}>
-      <Painel />
+      <MemoryRouter initialEntries={['/painel']}>
+        <Routes>
+          <Route path="/painel" element={<Painel />} />
+          <Route
+            path="/conteudos/:conteudoId"
+            element={<h1>Detalhe falso</h1>}
+          />
+        </Routes>
+      </MemoryRouter>
     </ContextoAutenticacao.Provider>,
   )
 }
@@ -112,6 +124,77 @@ describe('Painel', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Instagram')).toBeInTheDocument()
     expect(screen.getByText('21/08/2026')).toBeInTheDocument()
+  })
+
+  it('o título do ranking leva ao conteúdo', async () => {
+    const usuario = userEvent.setup()
+
+    renderizarPainel({
+      ...painelVazio,
+      total_conteudos: 1,
+      conteudos_com_metricas: 1,
+      maiores_alcances: [
+        {
+          conteudo_id: 7,
+          titulo: 'Reels sobre preço',
+          plataforma: 'Instagram',
+          alcance: 1450,
+          engajamento: 10.07,
+          data_referencia: '2026-08-21',
+        },
+      ],
+    })
+
+    await usuario.click(
+      await screen.findByRole('link', { name: 'Reels sobre preço' }),
+    )
+
+    // Sem o link, quem via o post de maior alcance tinha de ir à lista e
+    // procurar pelo título para abri-lo.
+    expect(
+      await screen.findByRole('heading', { name: 'Detalhe falso' }),
+    ).toBeInTheDocument()
+  })
+
+  it('explica como ler cada seção', async () => {
+    renderizarPainel({
+      ...painelVazio,
+      total_conteudos: 1,
+      conteudos_com_metricas: 1,
+      desempenho_por_plataforma: [
+        {
+          plataforma: 'Instagram',
+          total_conteudos: 1,
+          conteudos_com_metricas: 1,
+          total_visualizacoes: 1000,
+          total_curtidas: 80,
+          total_comentarios: 10,
+          total_compartilhamentos: 10,
+          total_alcance: 800,
+          engajamento: 12.5,
+        },
+      ],
+      maiores_alcances: [
+        {
+          conteudo_id: 7,
+          titulo: 'Reels sobre preço',
+          plataforma: 'Instagram',
+          alcance: 800,
+          engajamento: 12.5,
+          data_referencia: '2026-08-21',
+        },
+      ],
+    })
+
+    // Sem estas linhas o usuário não sabe por qual coluna a tabela está
+    // ordenada nem que alcance não é o mesmo que desempenho, e a leitura
+    // do painel vira palpite.
+    expect(
+      await screen.findByText(/compare a coluna Engajamento/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Alcançar mais pessoas não é a mesma coisa/),
+    ).toBeInTheDocument()
   })
 
   it('mostra a mensagem de erro quando a busca falha', async () => {

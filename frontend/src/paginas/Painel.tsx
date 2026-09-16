@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { ErroDaApi } from '../api/cliente'
 import { buscarPainel } from '../api/painel'
@@ -118,6 +119,15 @@ export function Painel() {
             </p>
           ) : (
             <>
+              {/* Sem esta linha o usuário não sabe qual coluna responde
+                  "qual rede rende mais", e escolhe uma no chute. */}
+              <p className={estilos.leitura}>
+                Ordenado pelo alcance, da rede onde você chegou a mais
+                pessoas para a que chegou a menos. Se quiser saber onde o
+                público reage mais, e não onde ele só é maior, compare a
+                coluna Engajamento.
+              </p>
+
               <BarrasPorPlataforma
                 plataformas={dados.desempenho_por_plataforma}
               />
@@ -179,7 +189,17 @@ export function Painel() {
               conteúdos para ver o ranking.
             </p>
           ) : (
-            <div className={estilos.moldura}>
+            <>
+              {/* A ressalva é a razão registrada no RF05 para o índice
+                  aparecer ao lado do alcance, e nunca tinha chegado à
+                  tela: o título empurra para a leitura contrária. */}
+              <p className={estilos.leitura}>
+                Estão ordenados por alcance. Alcançar mais pessoas não é a
+                mesma coisa que ir melhor, então olhe o engajamento ao
+                lado para saber qual post fez mais gente reagir.
+              </p>
+
+              <div className={estilos.moldura}>
               <table className={estilos.tabela}>
                 <thead>
                   <tr>
@@ -197,7 +217,14 @@ export function Painel() {
                 <tbody>
                   {dados.maiores_alcances.map((conteudo) => (
                     <tr key={conteudo.conteudo_id}>
-                      <td>{conteudo.titulo}</td>
+                      {/* Do painel para o conteúdo em um clique. O
+                          identificador já vinha na resposta e só era
+                          usado como chave da linha. */}
+                      <td>
+                        <Link to={`/conteudos/${conteudo.conteudo_id}`}>
+                          {conteudo.titulo}
+                        </Link>
+                      </td>
                       <td>{conteudo.plataforma}</td>
                       <td>{formatarData(conteudo.data_referencia)}</td>
                       <td className={estilos.numerico}>
@@ -210,7 +237,8 @@ export function Painel() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </>
       )}
