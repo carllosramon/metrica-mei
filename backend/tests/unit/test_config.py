@@ -16,3 +16,23 @@ def test_settings_reads_environment(monkeypatch):
     assert settings.jwt_expires_minutes == 30
 
     get_settings.cache_clear()
+
+def test_allowed_origins_ignores_spacing_and_trailing_slash(
+    monkeypatch,
+):
+    # A barra final é o engano de quem copia o endereço da barra do
+    # navegador. O CORS compara a origem como texto exato, então
+    # "https://app.metricamei.com/" nunca casaria, e a falha chega ao
+    # desenvolvedor como requisição bloqueada, sem motivo declarado.
+    monkeypatch.setenv(
+        "CORS_ORIGINS",
+        "https://app.metricamei.com/, http://localhost:5173 ,,",
+    )
+    get_settings.cache_clear()
+
+    assert get_settings().allowed_origins() == [
+        "https://app.metricamei.com",
+        "http://localhost:5173",
+    ]
+
+    get_settings.cache_clear()
