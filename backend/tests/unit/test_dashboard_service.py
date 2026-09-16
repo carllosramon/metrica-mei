@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from app.domain.content import Content
 from app.domain.metric import Metric
 from app.services.dashboard_service import DashboardService
+from app.services.engagement import engagement_of
 from tests.dubles.in_memory_content_repository import (
     InMemoryContentRepository,
 )
@@ -595,3 +596,34 @@ def test_dashboard_ignores_contents_of_other_users():
         item.plataforma
         for item in dashboard.desempenho_por_plataforma
     ] == ["Instagram"]
+
+
+def test_dashboard_engagement_agrees_with_the_shared_calculation():
+    # O RF04 exige que o painel reaproveite o cálculo, e não faça o
+    # próprio. Isso não tinha teste: uma segunda implementação, com
+    # arredondamento diferente ou outra ordem de soma, passaria calada
+    # e o índice do painel divergiria do que a tela de detalhe mostra
+    # para a mesma medição.
+    service, content_repository, metric_repository = make_service()
+
+    content = create_content(content_repository)
+
+    metric = create_metric(
+        metric_repository,
+        content.id,
+        curtidas=37,
+        comentarios=11,
+        compartilhamentos=5,
+        alcance=433,
+    )
+
+    dashboard = service.get(user_id=1)
+
+    esperado = engagement_of(metric)
+
+    assert dashboard.engajamento_geral == esperado
+    assert dashboard.maiores_alcances[0].engajamento == esperado
+    assert (
+        dashboard.desempenho_por_plataforma[0].engajamento
+        == esperado
+    )

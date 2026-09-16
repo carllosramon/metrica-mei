@@ -63,6 +63,8 @@ Todas as rotas exceto cadastro, login e verificação de saúde exigem token vá
 | 5 | `tests/unit/test_metric_service_crud.py`, `tests/integration/test_metric_api.py` |
 | 6 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |
 | 7, 8 | `tests/integration/test_auth_me.py`, `tests/integration/test_dashboard_api.py` |
-| 9 | `frontend/src/api/cliente.test.ts`, `frontend/e2e/jornada.spec.ts` |
+| 9 | `frontend/src/autenticacao/ProvedorAutenticacao.test.tsx`, `frontend/src/autenticacao/RotaProtegida.test.tsx`, `frontend/e2e/jornada.spec.ts` |
+
+O `frontend/src/api/cliente.test.ts` estava citado no critério 9 e não o verifica: ele prova que o cliente avisa a perda de sessão, e quem leva o usuário de volta ao login são o provedor e a rota protegida, testados nos dois arquivos acima.
 
 Requisitos relacionados: RF01 (estabelece a identidade), RF02, RF03 e RF05 (operações que precisam preservar o isolamento), RNF03 (JWT).

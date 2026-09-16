@@ -164,7 +164,7 @@ Ausência de dados não é erro: é o estado inicial de toda conta recém-criada
 
 | Critério | Verificado em |
 |---|---|
-| 1 a 5, 11, 12 | `tests/unit/test_dashboard_service.py` |
+| 1 a 5, 11, 12 | `tests/unit/test_dashboard_service.py`, `frontend/e2e/painel-consolidado.spec.ts` (duas redes e duas datas, ponta a ponta) |
 | 6, 7 | `tests/unit/test_dashboard_service.py` |
 | 8, 9 | `tests/unit/test_dashboard_service.py`, `frontend/src/paginas/Painel.test.tsx` |
 | 10 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |

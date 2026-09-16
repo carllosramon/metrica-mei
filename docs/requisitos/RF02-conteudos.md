@@ -85,10 +85,10 @@ Excluir um conteúdo apaga suas métricas, pela definição da chave estrangeira
 
 | Critério | Verificado em |
 |---|---|
-| 1, 2, 3 | `tests/unit/test_content_service_create.py`, `tests/integration/test_content_api.py` |
+| 1, 2, 3 | `tests/unit/test_content_service_create.py`, `tests/integration/test_content_api.py`, `tests/integration/test_limites_aceitos.py` (os tamanhos de texto aceitos na borda) |
 | 4, 7 | `tests/unit/test_content_service_url_publicacao.py` |
 | 5, 6, 8 | `tests/unit/test_content_service_crud.py` |
-| 8 | `tests/integration/test_sqlalchemy_metric_repository.py` (cascata) |
+| 8 | `tests/integration/test_sqlalchemy_content_repository.py` (`test_deleting_content_removes_its_metrics_in_the_database`, que roda também no PostgreSQL quando `TEST_DATABASE_URL` aponta para ele) |
 | 9 | `tests/integration/test_content_api.py` |
 | 10 | `frontend/src/paginas/Conteudos.test.tsx`, `frontend/e2e/jornada.spec.ts` |
 | 11 | `tests/unit/test_content_service_crud.py`, `tests/integration/test_content_api.py`, `frontend/src/paginas/Conteudos.test.tsx` |

@@ -68,7 +68,7 @@ A métrica não guarda `usuario_id`. A cadeia é `Usuario → Conteudo → Metri
 
 | Critério | Verificado em |
 |---|---|
-| 1, 2, 3 | `tests/unit/test_metric_service_create.py`, `tests/integration/test_metric_api.py` |
+| 1, 2, 3 | `tests/unit/test_metric_service_create.py`, `tests/integration/test_metric_api.py`, `tests/integration/test_limites_aceitos.py` (o teto do inteiro aceito, e os números que não são inteiros recusados) |
 | 4 | `tests/unit/test_metric_service_create.py`, `tests/unit/test_in_memory_metric_repository.py` |
 | 5 | `tests/integration/test_metric_migration.py`, `tests/integration/test_sqlalchemy_metric_repository.py` |
 | 6, 7, 8 | `tests/unit/test_metric_service_crud.py` |
