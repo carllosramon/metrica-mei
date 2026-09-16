@@ -891,3 +891,66 @@ def test_create_content_rejects_malformed_url(
     assert response.json() == {
         "detail": "A URL informada não é um endereço válido."
     }
+
+
+def test_list_contents_reports_date_of_last_metric(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    medido = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Conteúdo medido",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": "2026-08-18",
+        },
+    ).json()
+
+    client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Conteúdo sem medição",
+            "plataforma": "TikTok",
+            "tipo": "Vídeo",
+            "data_publicacao": "2026-08-19",
+        },
+    )
+
+    for dia in ("2026-08-25", "2026-08-20"):
+        resposta = client.post(
+            f"/conteudos/{medido['id']}/metricas",
+            headers=headers,
+            json={
+                "visualizacoes": 100,
+                "curtidas": 10,
+                "comentarios": 2,
+                "compartilhamentos": 1,
+                "alcance": 80,
+                "data_referencia": dia,
+            },
+        )
+
+        assert resposta.status_code == 201
+
+    body = client.get(
+        "/conteudos",
+        headers=headers,
+    ).json()
+
+    por_titulo = {item["titulo"]: item for item in body}
+
+    # A mais recente é a de maior data de referência, não a última
+    # gravada, e a lista precisa dela para dizer o que já foi anotado.
+    assert (
+        por_titulo["Conteúdo medido"]["ultima_medicao"]
+        == "2026-08-25"
+    )
+
+    assert (
+        por_titulo["Conteúdo sem medição"]["ultima_medicao"]
+        is None
+    )

@@ -101,3 +101,10 @@
   background-color: var(--cor-erro-suave);
   color: var(--cor-erro);
 }
+
+/* Não é um defeito nem um alerta: é o estado normal de quem acabou de
+   cadastrar. Fica em cinza para não competir com as datas ao redor. */
+.nuncaMedido {
+  color: var(--cor-texto-suave);
+  font-style: italic;
+}

@@ -55,6 +55,14 @@ A validação exige `http://` ou `https://` e no máximo 500 caracteres, e fica 
 
 O `PATCH` altera apenas os campos enviados. Campo ausente mantém o valor, o que evita que a interface precise reenviar o registro inteiro e sobrescrever o que não editou.
 
+### A listagem informa a última medição
+
+`GET /conteudos` devolve, em cada item, um campo `ultima_medicao` com a data de referência da medição mais recente do conteúdo, ou `null` quando ele nunca foi medido.
+
+O propósito do sistema é o registro **periódico** de desempenho, e a pergunta que a rotina faz é "o que eu ainda não anotei". Sem esse campo, respondê-la exigia abrir um conteúdo por vez. O campo não é atributo do conteúdo, e sim derivado das medições dele, por isso aparece só na listagem: na consulta individual ele seria sempre nulo, e nulo ali significaria "nunca medido" para um conteúdo que pode ter histórico inteiro.
+
+A data sai da mesma consulta única que o painel usa para achar o retrato mais recente de cada conteúdo, e não de uma consulta por linha da lista.
+
 ### Exclusão em cascata
 
 Excluir um conteúdo apaga suas métricas, pela definição da chave estrangeira. Métrica sem conteúdo não tem significado — nem sequer tem dono, já que o vínculo com o usuário passa pelo conteúdo.
@@ -70,7 +78,8 @@ Excluir um conteúdo apaga suas métricas, pela definição da chave estrangeira
 7. `null` em `url_publicacao` remove a URL; `null` nos demais campos é recusado;
 8. a exclusão remove o conteúdo e suas métricas;
 9. conteúdo de outro usuário responde `404` em consulta, edição e exclusão;
-10. a interface permite cadastrar, editar e excluir sem uso da API direta.
+10. a interface permite cadastrar, editar e excluir sem uso da API direta;
+11. a listagem informa a data da última medição de cada conteúdo, e `null` quando ele nunca foi medido.
 
 ## 6. Rastreabilidade
 
@@ -82,5 +91,6 @@ Excluir um conteúdo apaga suas métricas, pela definição da chave estrangeira
 | 8 | `tests/integration/test_sqlalchemy_metric_repository.py` (cascata) |
 | 9 | `tests/integration/test_content_api.py` |
 | 10 | `frontend/src/paginas/Conteudos.test.tsx`, `frontend/e2e/jornada.spec.ts` |
+| 11 | `tests/unit/test_content_service_crud.py`, `tests/integration/test_content_api.py`, `frontend/src/paginas/Conteudos.test.tsx` |
 
 Requisitos relacionados: RF01 (identidade), RF03 (métricas vinculadas), RF06 (isolamento), RNF01, RNF02.

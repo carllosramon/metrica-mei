@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { criarConteudo, listarConteudos } from '../api/conteudos'
 import { mensagemDe } from '../api/falhas'
-import type { Conteudo } from '../api/tipos'
+import type { ConteudoDaLista } from '../api/tipos'
 import { useAutenticacao } from '../autenticacao/useAutenticacao'
 import { reservarPedido } from '../carregamento'
 import { Campo } from '../componentes/Campo'
@@ -36,7 +36,7 @@ function formularioVazio(): DadosDoFormulario {
 export function Conteudos() {
   const { token } = useAutenticacao()
 
-  const [conteudos, definirConteudos] = useState<Conteudo[] | null>(null)
+  const [conteudos, definirConteudos] = useState<ConteudoDaLista[] | null>(null)
 
   // Dois erros, porque a tela distingue "a lista não veio" de "o cadastro
   // não passou". Com um estado só, limpar o erro ao cadastrar apagava
@@ -249,6 +249,7 @@ export function Conteudos() {
                 <th scope="col">Plataforma</th>
                 <th scope="col">Tipo</th>
                 <th scope="col">Publicação</th>
+                <th scope="col">Última medição</th>
               </tr>
             </thead>
             <tbody>
@@ -262,6 +263,17 @@ export function Conteudos() {
                   <td>{conteudo.plataforma}</td>
                   <td>{conteudo.tipo}</td>
                   <td>{formatarData(conteudo.data_publicacao)}</td>
+                  {/* A coluna é o que responde "o que eu esqueci de
+                      medir" sem abrir um conteúdo por vez. */}
+                  <td>
+                    {conteudo.ultima_medicao === null ? (
+                      <span className={estilos.nuncaMedido}>
+                        nunca medido
+                      </span>
+                    ) : (
+                      formatarData(conteudo.ultima_medicao)
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

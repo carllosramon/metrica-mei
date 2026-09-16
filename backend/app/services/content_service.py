@@ -2,7 +2,7 @@ from dataclasses import replace
 from datetime import date, datetime, timezone
 from urllib.parse import urlsplit
 
-from app.domain.content import Content
+from app.domain.content import Content, ContentListItem
 from app.repositories.content_repository import ContentRepository
 from app.repositories.metric_repository import MetricRepository
 from app.services.business_clock import business_today
@@ -132,8 +132,46 @@ class ContentService:
     def list(
         self,
         user_id: int,
-    ) -> list[Content]:
-        return self._repository.list_by_user(user_id)
+    ) -> list[ContentListItem]:
+        contents = self._repository.list_by_user(user_id)
+
+        identificadores = []
+
+        for content in contents:
+            identificadores.append(content.id)
+
+        # Uma consulta para todos os conteúdos, a mesma que o painel usa.
+        # Perguntar o histórico de cada um custaria uma ida ao banco por
+        # linha da lista.
+        medicao_do_conteudo = (
+            self._metric_repository.latest_by_contents(
+                identificadores
+            )
+        )
+
+        listagem = []
+
+        for content in contents:
+            metrica = medicao_do_conteudo.get(content.id)
+
+            listagem.append(
+                ContentListItem(
+                    id=content.id,
+                    titulo=content.titulo,
+                    plataforma=content.plataforma,
+                    tipo=content.tipo,
+                    data_publicacao=content.data_publicacao,
+                    criado_em=content.criado_em,
+                    url_publicacao=content.url_publicacao,
+                    ultima_medicao=(
+                        None
+                        if metrica is None
+                        else metrica.data_referencia
+                    ),
+                )
+            )
+
+        return listagem
 
     def get(
         self,

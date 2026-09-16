@@ -10,6 +10,7 @@ from app.dependencies import (
 )
 from app.schemas.content import (
     ContentCreateRequest,
+    ContentListItemResponse,
     ContentResponse,
     ContentUpdateRequest,
 )
@@ -65,11 +66,15 @@ def create_content(
 
 @router.get(
     "/conteudos",
-    response_model=list[ContentResponse],
+    response_model=list[ContentListItemResponse],
     summary="Listar meus conteúdos",
     description=(
         "Devolve apenas os conteúdos do usuário autenticado, dos mais "
         "recentes para os mais antigos pela data de publicação."
+        "\n\n"
+        "`ultima_medicao` é a data de referência da medição mais recente "
+        "do conteúdo, e vem nula quando ele nunca foi medido. É o que "
+        "responde, sem abrir um por um, o que está faltando anotar."
     ),
     responses=SEM_SESSAO,
 )
