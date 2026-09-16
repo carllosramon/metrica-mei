@@ -41,6 +41,14 @@ describe('formatarData', () => {
     // new Date('2026-01-01') vira 31/12/2025 no horário de Brasília.
     expect(formatarData('2026-01-01')).toBe('01/01/2026')
   })
+
+  it('mostra travessão no que não é uma data ISO', () => {
+    // Antes saía "undefined/undefined/" na tela, que não diz nada a quem
+    // está lendo e nem sequer parece um defeito do sistema.
+    expect(formatarData('')).toBe('—')
+    expect(formatarData('25/08/2026')).toBe('—')
+    expect(formatarData('2026-08-25T10:00:00')).toBe('—')
+  })
 })
 
 describe('dataDeHoje', () => {
