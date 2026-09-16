@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 
 import { Campo } from '../../componentes/Campo'
-import { dataDeHoje } from '../../formatacao'
+import { dataDeHoje, formatarData } from '../../formatacao'
 import estilos from '../ConteudoDetalhe.module.css'
 
 export type DadosDaMedicao = {
@@ -16,6 +16,12 @@ export type DadosDaMedicao = {
 type Props = {
   dados: DadosDaMedicao
   enviando: boolean
+  // O erro do salvamento é mostrado aqui dentro, e não no topo da
+  // página, onde ficava fora da área visível junto com o botão clicado.
+  erro?: string | null
+  // Sem dizer qual data está em edição, "Editar" e "Registrar" abrem
+  // exatamente o mesmo formulário e o usuário não sabe onde está.
+  dataEmEdicao?: string | null
   // A medição não pode ser anterior à publicação: não se mede desempenho
   // de conteúdo que ainda não existia.
   dataDaPublicacao: string
@@ -27,6 +33,8 @@ type Props = {
 export function FormularioDaMedicao({
   dados,
   enviando,
+  erro = null,
+  dataEmEdicao = null,
   dataDaPublicacao,
   aoAlterar,
   aoEnviar,
@@ -34,6 +42,12 @@ export function FormularioDaMedicao({
 }: Props) {
   return (
     <form className={estilos.cartao} onSubmit={aoEnviar}>
+      <h3 className={estilos.tituloDoFormulario}>
+        {dataEmEdicao === null
+          ? 'Nova medição'
+          : `Editando a medição de ${formatarData(dataEmEdicao)}`}
+      </h3>
+
       {/* A única menção a "acumulado" ficava no estado vazio, abaixo do
           formulário, e sumia da segunda medição em diante. Quem anotasse
           o movimento do dia estragaria o histórico sem nunca saber. */}
@@ -108,6 +122,12 @@ export function FormularioDaMedicao({
           step={1}
         />
       </div>
+
+      {erro !== null && (
+        <p className={estilos.erro} role="alert">
+          {erro}
+        </p>
+      )}
 
       <div className={estilos.botoes}>
         <button className={estilos.acao} type="submit" disabled={enviando}>

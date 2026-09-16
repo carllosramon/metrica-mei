@@ -172,8 +172,41 @@ describe('ConteudoDetalhe', () => {
     )
 
     // A mensagem do backend diz o que houve; a da tela diz o que fazer.
+    const aviso = await screen.findByText(
+      /Edite a medição existente ou escolha outra data/,
+    )
+
+    expect(aviso).toBeInTheDocument()
+
+    // E aparece dentro do formulário, ao alcance de quem acabou de clicar
+    // em Salvar. Quando ficava no topo da página, o usuário via o botão
+    // não fazer nada e concluía que a tela tinha quebrado.
     expect(
-      await screen.findByText(/Edite a medição existente ou escolha outra data/),
+      screen.getByRole('button', { name: 'Salvar medição' }).closest('form'),
+    ).toContainElement(aviso)
+  })
+
+  it('o formulário diz se está criando ou corrigindo uma medição', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([medicao])
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    expect(
+      screen.getByRole('heading', { name: 'Nova medição' }),
+    ).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
+    await usuario.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(
+      screen.getByRole('heading', { name: 'Editando a medição de 22/08/2026' }),
     ).toBeInTheDocument()
   })
 

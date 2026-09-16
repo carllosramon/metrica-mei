@@ -147,6 +147,13 @@
   text-align: center;
 }
 
+/* Diz se o formulário está criando ou corrigindo, e qual data. Os dois
+   casos abriam exatamente a mesma tela. */
+.tituloDoFormulario {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
 .erro {
   margin-bottom: 20px;
   padding: 12px 16px;

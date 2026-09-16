@@ -85,6 +85,22 @@ export function ConteudoDetalhe() {
     number | null
   >(null)
 
+  const areaDoFormulario = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!formularioAberto) {
+      return
+    }
+
+    // O formulário abre acima do gráfico e da tabela, então quem clicou
+    // numa linha lá embaixo não via nada acontecer. A rolagem e o foco
+    // levam a pessoa até onde a ação continua.
+    areaDoFormulario.current?.scrollIntoView({ block: 'center' })
+    areaDoFormulario.current
+      ?.querySelector<HTMLInputElement>('input')
+      ?.focus()
+  }, [formularioAberto])
+
   // A guarda contra resposta atrasada vale para toda carga, a do efeito e
   // as disparadas depois de salvar ou excluir. Antes só a do efeito tinha,
   // e uma recarga pós-exclusão podia chegar com a tela já em outro
@@ -386,7 +402,10 @@ export function ConteudoDetalhe() {
         </button>
       </header>
 
-      {erro !== null && (
+      {/* Com o formulário de medição aberto, o erro é dele e aparece junto
+          dos botões. Repetir aqui em cima dava duas cópias da mesma frase
+          em tela grande e nenhuma visível em tela pequena. */}
+      {erro !== null && !formularioAberto && (
         <p className={estilos.erro} role="alert">
           {erro}
         </p>
@@ -414,14 +433,23 @@ export function ConteudoDetalhe() {
       )}
 
       {formularioAberto && (
-        <FormularioDaMedicao
-          dados={medicao}
-          enviando={enviando}
-          dataDaPublicacao={conteudo.data_publicacao}
-          aoAlterar={alterarMedicao}
-          aoEnviar={salvarMedicao}
-          aoCancelar={() => definirFormularioAberto(false)}
-        />
+        <div ref={areaDoFormulario}>
+          <FormularioDaMedicao
+            dados={medicao}
+            enviando={enviando}
+            erro={erro}
+            dataEmEdicao={
+              medicaoEmEdicao === null ? null : medicao.data_referencia
+            }
+            dataDaPublicacao={conteudo.data_publicacao}
+            aoAlterar={alterarMedicao}
+            aoEnviar={salvarMedicao}
+            aoCancelar={() => {
+              definirErro(null)
+              definirFormularioAberto(false)
+            }}
+          />
+        </div>
       )}
 
       {metricas !== null && metricas.length === 0 && (
