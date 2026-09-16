@@ -38,7 +38,9 @@ Persistência
 
 ### Controller
 
-Responsável pela camada HTTP: recebe requisições, valida schemas de entrada, utiliza autenticação, delega os casos de uso ao Service e converte exceções da aplicação em respostas HTTP.
+Responsável pela camada HTTP: recebe requisições, valida schemas de entrada, utiliza autenticação e delega os casos de uso ao Service.
+
+A conversão de exceções em respostas HTTP saiu daqui. Cada rota repetia o mesmo bloco de `try/except`, e bastava esquecer um para a falha virar `500`. Hoje os manipuladores ficam registrados na aplicação, em `app/erros.py`, e valem para toda rota por definição.
 
 ### Service
 
@@ -137,7 +139,9 @@ data_publicacao
 url_publicacao
 ```
 
-A URL de publicação é opcional, precisa começar com `http://` ou `https://` e pode ser removida enviando `null` no `PATCH`.
+A URL de publicação é opcional e pode ser removida enviando `null` no `PATCH`.
+
+A regra não é mais "começa com `http://` ou `https://`". Conferir o prefixo deixava passar `https://` sozinho, sem endereço nenhum, e recusava `HTTPS://`, que é válido porque o esquema não distingue caixa. Hoje o endereço é decomposto: o esquema precisa ser `http` ou `https`, comparado sem caixa, e precisa haver um destino depois dele. O limite é de 500 caracteres.
 
 Endpoints disponíveis:
 
@@ -148,6 +152,8 @@ GET    /conteudos/{content_id}
 PATCH  /conteudos/{content_id}
 DELETE /conteudos/{content_id}
 ```
+
+A listagem traz, em cada item, `ultima_medicao`: a data de referência da medição mais recente do conteúdo, ou `null` quando ele nunca foi medido. É o que responde "o que eu ainda não anotei" sem abrir um conteúdo por vez, que é a rotina que o sistema se propõe a apoiar. O campo não aparece na consulta individual, onde seria sempre nulo.
 
 O sistema aplica ownership por usuário: um usuário não pode consultar, alterar ou excluir conteúdos pertencentes a outro usuário.
 
@@ -172,8 +178,9 @@ O módulo atualmente possui:
 
 - entidade de domínio `Metric`;
 - contrato `MetricRepository`;
-- `InMemoryMetricRepository`;
-- `SQLAlchemyMetricRepository`;
+- `SQLAlchemyMetricRepository`, a implementação que a aplicação usa;
+- `InMemoryMetricRepository`, dublê de teste em `tests/dubles`, fora do
+  pacote da aplicação;
 - `MetricService`;
 - operações de criação, listagem, consulta, atualização e exclusão;
 - validação de valores inteiros não negativos;
@@ -331,9 +338,15 @@ pode estar vencido. Se o token vencer com a tela aberta, qualquer resposta
 `401` encerra a sessão e devolve o usuário ao login com aviso, em vez de
 deixá-lo numa tela que não carrega.
 
-O estilo usa CSS Modules, sem dependência adicional. A nomeação do código do
-frontend é em português, diferente do backend, que segue a convenção em inglês
-já consolidada.
+O estilo usa CSS Modules, sem dependência adicional.
+
+A nomeação do frontend é toda em português. No backend a fronteira é outra: o
+que é contrato com o mundo fica em português, porque é o vocabulário do
+usuário e o que aparece na API, e a estrutura interna segue o inglês. Um
+`Content` tem `titulo` e `data_publicacao`; um `ContentService` levanta
+`InvalidContentError` com mensagem em português. Código escrito nos marcos
+mais recentes nomeia em português também as variáveis e os métodos privados,
+onde o leitor é sempre a dupla.
 
 Para rodar:
 
@@ -353,7 +366,7 @@ npm test
 ```
 
 ```text
-108 testes passando
+145 testes passando
 ```
 
 Com medição de cobertura:
@@ -363,10 +376,10 @@ npm run test:coverage
 ```
 
 ```text
-Statements   : 91.24%
-Branches     : 82.72%
-Functions    : 92.53%
-Lines        : 91.58%
+Statements   : 92.59%
+Branches     : 85.71%
+Functions    : 94.28%
+Lines        : 92.51%
 ```
 
 O piso configurado é o valor medido, arredondado para baixo, e a execução
@@ -535,9 +548,12 @@ Crie o arquivo `.env` local:
 Copy-Item .env.example .env
 ```
 
-No `.env`, configure um segredo JWT seguro.
+No `.env`, preencha o `JWT_SECRET`. Ele vem vazio no exemplo de propósito:
+um valor de exemplo é um valor que alguém copia sem trocar, e aí quem leu o
+repositório sabe assinar token como qualquer usuário. Vazio, a API recusa
+subir e diz o motivo.
 
-Exemplo para gerar um segredo:
+Gere o seu com:
 
 ```powershell
 python -c "import secrets; print(secrets.token_urlsafe(48))"
@@ -630,7 +646,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-292 testes passando
+319 testes passando
 ```
 
 Com medição de cobertura:
@@ -641,13 +657,14 @@ python -m coverage report
 ```
 
 ```text
-960 instruções, 13 sem cobrir, 99%
+995 instruções, 12 sem cobrir, 99%
 ```
 
 O piso configurado no `.coveragerc` é 99, o valor medido arredondado para
-baixo, e o `coverage report` reprova abaixo dele. O que falta são nove
-instruções espalhadas por seis arquivos, entre elas ramos de erro do
-relógio de negócio e do serviço de conteúdo.
+baixo, e o `coverage report` reprova abaixo dele. As doze instruções que
+faltam estão espalhadas por seis arquivos, quase todas em ramos de erro de
+infraestrutura: escolha de dialeto na conexão, falha de sessão nas
+dependências e colisões de escrita que só um banco concorrente produz.
 
 ## Integração contínua
 
@@ -665,6 +682,42 @@ A configuração está em `.github/workflows/testes.yml`.
 O projeto atualmente utiliza Argon2 para hash de senhas, JWT com algoritmo HS256, access token com expiração, variáveis de ambiente para segredos e isolamento dos recursos pelo usuário autenticado.
 
 Segredos e arquivos locais de banco de dados não são versionados.
+
+## Implantação
+
+O trabalho prevê PostgreSQL em produção, e a passagem de uma máquina de
+desenvolvimento para um servidor tem quatro pontos que já custaram tempo
+aqui.
+
+**O segredo.** `JWT_SECRET` precisa ter ao menos 32 caracteres, e a API
+recusa subir sem isso, na subida e não no primeiro login. Gere um valor
+próprio para o servidor; o da máquina de desenvolvimento não serve, porque
+um token assinado num lugar passa a valer no outro.
+
+**O banco.** Troque `DATABASE_URL` para a URL do PostgreSQL e rode as
+migrations antes de subir a aplicação:
+
+```bash
+alembic upgrade head
+```
+
+Se a senha do banco tiver caractere codificado, como `%40` no lugar da
+arroba, ela passa pela URL sem problema — o `env.py` escapa o `%` antes de
+entregá-la ao Alembic, que de outro modo o leria como interpolação.
+
+**As origens.** `CORS_ORIGINS` recebe os endereços de onde o frontend será
+servido, separados por vírgula. A barra final é ignorada, mas o esquema e a
+porta contam: `https://app.exemplo.com` e `http://app.exemplo.com` são
+origens diferentes para o navegador.
+
+**O endereço da API no pacote.** O frontend embute `VITE_API_URL` no momento
+do build, e não lê a variável em tempo de execução. Gerar o pacote sem ela
+produz um site que procura a API em `localhost:8000` e só funciona na
+máquina de quem o gerou; o build avisa quando isso acontece.
+
+```bash
+VITE_API_URL=https://api.exemplo.com npm run build
+```
 
 ## Estado atual do desenvolvimento
 

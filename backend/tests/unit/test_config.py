@@ -36,3 +36,21 @@ def test_allowed_origins_ignores_spacing_and_trailing_slash(
     ]
 
     get_settings.cache_clear()
+
+
+def test_prazo_do_token_concorda_em_numero(monkeypatch):
+    # "1 minutos" apareceria no /docs de quem configurasse um minuto,
+    # que é o valor usado para exercitar expiração em demonstração.
+    from app.controllers.respostas import prazo_do_token
+
+    monkeypatch.setenv("JWT_EXPIRES_MINUTES", "1")
+    get_settings.cache_clear()
+
+    assert prazo_do_token() == "1 minuto"
+
+    monkeypatch.setenv("JWT_EXPIRES_MINUTES", "30")
+    get_settings.cache_clear()
+
+    assert prazo_do_token() == "30 minutos"
+
+    get_settings.cache_clear()
