@@ -228,6 +228,19 @@ def test_ranking_is_limited_to_five_contents():
     assert dashboard.total_conteudos == 6
     assert len(dashboard.maiores_alcances) == 5
 
+    # Contar cinco não diz quais cinco. Trocar o corte do começo para o
+    # fim da lista devolveria os cinco piores, no mesmo número, e a
+    # contagem continuaria passando.
+    assert [
+        item.titulo for item in dashboard.maiores_alcances
+    ] == [
+        "Conteúdo 5",
+        "Conteúdo 4",
+        "Conteúdo 3",
+        "Conteúdo 2",
+        "Conteúdo 1",
+    ]
+
 
 def test_ranking_keeps_content_without_reach():
     service, content_repository, metric_repository = make_service()
