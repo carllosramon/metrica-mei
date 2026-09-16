@@ -19,6 +19,10 @@ export default defineConfig({
   // disputariam os mesmos dados.
   fullyParallel: false,
   workers: 1,
+  // Um test.only esquecido faz a integração contínua rodar um teste e
+  // reportar verde, como se a jornada inteira tivesse passado. Na
+  // máquina de quem está desenvolvendo ele continua servindo.
+  forbidOnly: !!process.env.CI,
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${PORTA_DA_INTERFACE}`,
