@@ -2,22 +2,32 @@ import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 
+const AVISO_SEM_ENDERECO =
+  'VITE_API_URL não foi definida. O pacote vai procurar a API em ' +
+  'http://localhost:8000, o que só funciona na sua máquina. ' +
+  'Defina a variável antes de publicar.'
+
 // Sem VITE_API_URL o cliente cai em http://localhost:8000, que fica
-// embutido no pacote e só falha na máquina de quem abrir o site. O build
-// passa assim mesmo, porque em desenvolvimento esse endereço é o certo,
-// mas avisa em vez de deixar o engano sair calado.
-function avisarQuandoFaltaOEnderecoDaApi(): Plugin {
+// embutido no pacote e só falha na máquina de quem abrir o site.
+//
+// Na máquina de quem desenvolve isso é só um aviso, porque ali o endereço
+// padrão é o certo. Na integração contínua é erro: build sem endereço é
+// pacote que não serve para publicar, e como aviso ele acendia em toda
+// execução verde, o que treina qualquer um a ignorá-lo.
+function exigirOEnderecoDaApiNaIntegracao(): Plugin {
   return {
-    name: 'avisar-quando-falta-o-endereco-da-api',
+    name: 'exigir-o-endereco-da-api-na-integracao',
     apply: 'build',
     configResolved(configuracao) {
-      if (!configuracao.env.VITE_API_URL) {
-        configuracao.logger.warn(
-          '\nVITE_API_URL não foi definida. O pacote vai procurar a API em ' +
-            'http://localhost:8000, o que só funciona na sua máquina. ' +
-            'Defina a variável antes de publicar.\n',
-        )
+      if (configuracao.env.VITE_API_URL) {
+        return
       }
+
+      if (process.env.CI) {
+        throw new Error(AVISO_SEM_ENDERECO)
+      }
+
+      configuracao.logger.warn(`\n${AVISO_SEM_ENDERECO}\n`)
     },
   }
 }
@@ -29,7 +39,7 @@ function avisarQuandoFaltaOEnderecoDaApi(): Plugin {
 process.env.TZ = 'America/Sao_Paulo'
 
 export default defineConfig({
-  plugins: [react(), avisarQuandoFaltaOEnderecoDaApi()],
+  plugins: [react(), exigirOEnderecoDaApiNaIntegracao()],
   test: {
     environment: 'jsdom',
     globals: true,

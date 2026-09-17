@@ -106,6 +106,24 @@ function renderizar() {
   )
 }
 
+// A volta para a lista só é observável se a rota de destino existir na
+// árvore, senão o React Router navega para o vazio.
+function renderizarComDestino() {
+  return render(
+    <ContextoAutenticacao.Provider value={autenticacao}>
+      <MemoryRouter initialEntries={['/conteudos/7']}>
+        <Routes>
+          <Route
+            path="/conteudos/:conteudoId"
+            element={<ConteudoDetalhe />}
+          />
+          <Route path="/conteudos" element={<p>Estou na lista</p>} />
+        </Routes>
+      </MemoryRouter>
+    </ContextoAutenticacao.Provider>,
+  )
+}
+
 type RotuloDeMedida =
   | 'Visualizações'
   | 'Alcance'
@@ -702,6 +720,46 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
       screen.getByRole('heading', { name: 'Carrossel de dicas' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('cell', { name: '22/08/2026' })).toBeNull()
+  })
+
+  it('conteúdo inexistente devolve o usuário à lista', async () => {
+    vi.mocked(buscarConteudo).mockRejectedValue(
+      new ErroDaApi(404, 'Conteúdo não encontrado.'),
+    )
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizarComDestino()
+
+    // É o caminho de quem abre um link antigo, de um conteúdo já
+    // excluído, ou de um id de outra conta, que o backend também responde
+    // 404 para não revelar que o registro existe. Não havia teste nenhum
+    // aqui: o único que parecia cobrir usa /conteudos/abc, que para antes
+    // de chamar a API.
+    expect(await screen.findByText('Estou na lista')).toBeInTheDocument()
+  })
+
+  it('mostra o motivo quando a carga do conteúdo falha sem ser 404', async () => {
+    vi.mocked(buscarConteudo).mockRejectedValue(
+      new ErroDaApi(500, 'O servidor caiu.'),
+    )
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizar()
+
+    // Erro de servidor não é conteúdo inexistente: tirar o usuário da
+    // tela aqui esconderia um problema que pode passar sozinho.
+    expect(await screen.findByText('O servidor caiu.')).toBeInTheDocument()
+  })
+
+  it('mostra o motivo quando a carga das medições falha', async () => {
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockRejectedValue(new Error('caiu'))
+
+    renderizar()
+
+    expect(
+      await screen.findByText('Não foi possível carregar as medições.'),
+    ).toBeInTheDocument()
   })
 
   it('a recusa do conteúdo não aparece dentro do formulário da medição', async () => {

@@ -72,15 +72,32 @@ class InMemoryContentRepository:
         if guardado.usuario_id != content.usuario_id:
             return None
 
-        self._contents[content.id] = content
+        # O criado_em não é reescrito, porque a produção atualiza apenas
+        # os cinco campos editáveis. Gravar o objeto inteiro deixaria o
+        # dublê aceitar um carimbo novo que o banco descartaria.
+        atualizado = replace(
+            content,
+            criado_em=guardado.criado_em,
+        )
 
-        return content
+        self._contents[content.id] = atualizado
+
+        return atualizado
 
     def delete(self, content: Content) -> None:
         if content.id is None:
             return
 
-        self._contents.pop(content.id, None)
+        # O dono é conferido antes de apagar, porque o repositório do
+        # SQLAlchemy filtra por id e dono e não faz nada quando não casa.
+        # Sem isto, o dublê apagaria registro alheio e aprovaria uma
+        # exclusão que em produção seria silenciosamente ignorada.
+        guardado = self._contents.get(content.id)
+
+        if guardado is None or guardado.usuario_id != content.usuario_id:
+            return
+
+        del self._contents[content.id]
 
         if self._metric_repository is not None:
             self._metric_repository.apagar_do_conteudo(content.id)

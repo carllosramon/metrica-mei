@@ -30,6 +30,7 @@ def create_content(
     user_id=1,
     titulo="Post",
     plataforma="Instagram",
+    data_publicacao=None,
 ):
     return repository.create(
         Content(
@@ -38,7 +39,9 @@ def create_content(
             titulo=titulo,
             plataforma=plataforma,
             tipo="Reels",
-            data_publicacao=date.today(),
+            data_publicacao=(
+                data_publicacao or date.today()
+            ),
             criado_em=datetime.now(timezone.utc),
         )
     )
@@ -529,6 +532,37 @@ def test_platform_performance_ignores_letter_case():
     assert len(dashboard.desempenho_por_plataforma) == 1
     assert dashboard.desempenho_por_plataforma[0].plataforma == "Instagram"
     assert dashboard.desempenho_por_plataforma[0].total_alcance == 500
+
+
+def test_platform_spelling_does_not_follow_listing_order():
+    service, content_repository, metric_repository = make_service()
+
+    # A listagem ordena por data de publicação decrescente, então o
+    # conteúdo cadastrado primeiro aparece primeiro quando é também o
+    # publicado mais tarde. Nessa ordem, a grafia vencedora não pode ser a
+    # da linha seguinte.
+    cadastrado_primeiro = create_content(
+        content_repository,
+        titulo="Publicado hoje",
+        plataforma="Instagram",
+        data_publicacao=date.today(),
+    )
+    cadastrado_depois = create_content(
+        content_repository,
+        titulo="Publicado ontem",
+        plataforma="INSTAGRAM",
+        data_publicacao=date.today() - timedelta(days=1),
+    )
+
+    create_metric(metric_repository, cadastrado_primeiro.id, alcance=100)
+    create_metric(metric_repository, cadastrado_depois.id, alcance=200)
+
+    dashboard = service.get(user_id=1)
+
+    assert len(dashboard.desempenho_por_plataforma) == 1
+    assert (
+        dashboard.desempenho_por_plataforma[0].plataforma == "Instagram"
+    )
 
 
 def test_platform_performance_is_ordered_by_reach_desc():

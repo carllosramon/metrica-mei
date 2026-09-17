@@ -812,3 +812,56 @@ def test_get_metric_of_other_users_content_returns_404(
     )
 
     assert_content_is_hidden(response)
+
+
+def test_reference_date_uses_the_business_calendar(
+    client,
+    monkeypatch,
+):
+    # O conftest troca business_today por date.today() na suíte inteira,
+    # para os testes não dependerem do fuso do runner. O efeito colateral
+    # é que o caminho da API deixa de exercitar o relógio de negócio:
+    # trocar business_today() por date.today() aqui no serviço deixava
+    # tudo verde, porque na máquina do desenvolvedor as duas respondem
+    # igual. A trava equivalente já existe para o conteúdo.
+    dia_de_negocio = date(2026, 9, 10)
+
+    monkeypatch.setattr(
+        "app.services.metric_service.business_today",
+        lambda: dia_de_negocio,
+    )
+
+    headers = authenticated_headers(client)
+
+    content = create_content(
+        client,
+        headers,
+        publication_date=(
+            dia_de_negocio - timedelta(days=5)
+        ).isoformat(),
+    )
+
+    aceita = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=metric_payload(
+            reference_date=dia_de_negocio.isoformat(),
+        ),
+    )
+
+    assert aceita.status_code == 201
+
+    recusada = client.post(
+        f"/conteudos/{content['id']}/metricas",
+        headers=headers,
+        json=metric_payload(
+            reference_date=(
+                dia_de_negocio + timedelta(days=1)
+            ).isoformat(),
+        ),
+    )
+
+    assert recusada.status_code == 422
+    assert recusada.json() == {
+        "detail": "A data de referência não pode estar no futuro."
+    }

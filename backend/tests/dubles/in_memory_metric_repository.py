@@ -140,8 +140,18 @@ class InMemoryMetricRepository:
         self,
         metric: Metric,
     ) -> None:
-        if metric.id is not None:
-            self._metrics.pop(
-                metric.id,
-                None,
-            )
+        if metric.id is None:
+            return
+
+        # O vínculo com o conteúdo é conferido antes de apagar, porque o
+        # repositório do SQLAlchemy filtra por id e conteúdo e não faz
+        # nada quando não casa.
+        guardada = self._metrics.get(metric.id)
+
+        if (
+            guardada is None
+            or guardada.conteudo_id != metric.conteudo_id
+        ):
+            return
+
+        del self._metrics[metric.id]

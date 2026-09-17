@@ -55,7 +55,21 @@ jobs:
       - name: rodar os testes com cobertura
         run: npm run test:coverage
 
-      - run: npm run build
+      # O build roda com o endereço definido, como numa publicação de
+      # verdade. Sem a variável, o aviso do vite.config acendia em toda
+      # execução verde, e sinal sempre aceso não é sinal.
+      - name: gerar o pacote com o endereço da API
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.metricamei.exemplo
+
+      # Prova que o endereço configurado foi embutido e que o padrão de
+      # desenvolvimento não sobreviveu. Um erro de digitação na variável
+      # deixava o pacote apontando para a máquina de quem o gerou.
+      - name: conferir o endereço embutido no pacote
+        run: |
+          grep -rq "https://api.metricamei.exemplo" dist/assets
+          ! grep -rq "localhost:8000" dist/assets
 
   jornada:
     name: jornada de ponta a ponta
