@@ -106,6 +106,35 @@ function renderizar() {
   )
 }
 
+type RotuloDeMedida =
+  | 'Visualizações'
+  | 'Alcance'
+  | 'Curtidas'
+  | 'Comentários'
+  | 'Compartilhamentos'
+
+// Os cinco campos são obrigatórios e nascem vazios, então todo teste que
+// salva uma medição precisa preenchê-los, mesmo quando só um deles importa
+// para o que ele verifica.
+function preencherMedidas(
+  valores: Partial<Record<RotuloDeMedida, string>> = {},
+) {
+  const medidas: Record<RotuloDeMedida, string> = {
+    Visualizações: '3200',
+    Alcance: '1450',
+    Curtidas: '110',
+    Comentários: '14',
+    Compartilhamentos: '22',
+    ...valores,
+  }
+
+  for (const [rotulo, valor] of Object.entries(medidas)) {
+    fireEvent.change(screen.getByLabelText(rotulo), {
+      target: { value: valor },
+    })
+  }
+}
+
 afterEach(() => {
   vi.clearAllMocks()
 })
@@ -167,6 +196,9 @@ describe('ConteudoDetalhe', () => {
     await usuario.click(
       await screen.findByRole('button', { name: 'Registrar medição' }),
     )
+
+    preencherMedidas()
+
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),
     )
@@ -184,6 +216,32 @@ describe('ConteudoDetalhe', () => {
     expect(
       screen.getByRole('button', { name: 'Salvar medição' }).closest('form'),
     ).toContainElement(aviso)
+  })
+
+  it('recusa a medição salva sem nenhum número digitado', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    // Os campos vinham com '0' dentro, então este clique gravava um
+    // retrato zerado na data de hoje. Como o painel lê só a medição mais
+    // recente, o conteúdo saía dos totais e ninguém era avisado.
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar medição' }),
+    )
+
+    expect(criarMetrica).not.toHaveBeenCalled()
+
+    // Zerar é uma escolha possível, e continua possível: o que deixa de
+    // existir é o caminho de gravar zero sem querer.
+    expect(screen.getByLabelText('Alcance')).toHaveValue(null)
   })
 
   it('o formulário diz se está criando ou corrigindo uma medição', async () => {
@@ -469,6 +527,8 @@ describe('ConteudoDetalhe', () => {
       within(tabela).getByRole('button', { name: 'Confirmar' }),
     ).toBeInTheDocument()
 
+    preencherMedidas()
+
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),
     )
@@ -644,6 +704,9 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     await usuario.click(
       screen.getByRole('button', { name: 'Registrar medição' }),
     )
+
+    preencherMedidas()
+
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),
     )
@@ -701,9 +764,7 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     // O campo numérico aceita "12.000" como número válido, e Number() lê
     // isso como 12. É o formato em que o Instagram mostra o alcance, ou
     // seja, o que o usuário copia.
-    fireEvent.change(screen.getByLabelText('Alcance'), {
-      target: { value: '12.000' },
-    })
+    preencherMedidas({ Alcance: '12.000' })
 
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),

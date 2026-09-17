@@ -48,6 +48,11 @@ async function registrarMedicao(
   await page.getByLabel('Visualizações').fill(medidas.visualizacoes)
   await page.getByLabel('Alcance').fill(medidas.alcance)
   await page.getByLabel('Curtidas').fill(medidas.curtidas)
+
+  // Os cinco campos são obrigatórios e nascem vazios, então os que este
+  // cenário não usa precisam receber zero explicitamente.
+  await page.getByLabel('Comentários').fill('0')
+  await page.getByLabel('Compartilhamentos').fill('0')
   await page.getByRole('button', { name: 'Salvar medição' }).click()
 }
 

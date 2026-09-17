@@ -31,13 +31,19 @@ import { inteiroDigitado, urlOuNulo } from './formularios'
 // A data padrão é calculada na hora de abrir o formulário. Calculada no
 // carregamento do módulo, numa aba aberta depois da meia-noite ela ficava
 // em ontem, e a medição era salva no dia errado.
+//
+// As medidas nascem vazias, e não em zero, para o `required` dos campos
+// voltar a valer. Com zero dentro, salvar sem digitar nada gravava um
+// retrato zerado na data de hoje; como o painel lê só a medição mais
+// recente de cada conteúdo, o histórico inteiro dele saía dos totais e o
+// índice virava travessão, sem aviso nenhum na tela.
 function medicaoVazia(): DadosDaMedicao {
   return {
-    visualizacoes: '0',
-    curtidas: '0',
-    comentarios: '0',
-    compartilhamentos: '0',
-    alcance: '0',
+    visualizacoes: '',
+    curtidas: '',
+    comentarios: '',
+    compartilhamentos: '',
+    alcance: '',
     data_referencia: dataDeHoje(),
   }
 }
