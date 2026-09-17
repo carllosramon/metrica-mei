@@ -76,7 +76,18 @@ export function ConteudoDetalhe() {
 
   const [conteudo, definirConteudo] = useState<Conteudo | null>(null)
   const [metricas, definirMetricas] = useState<Metrica[] | null>(null)
-  const [erro, definirErro] = useState<string | null>(null)
+  // Dois erros, divididos por onde o usuário está olhando quando a falha
+  // acontece, e não pela entidade envolvida. O do formulário cobre só
+  // salvar a medição, a única ação que parte de dentro dele; todo o resto,
+  // inclusive excluir medição pela tabela, aparece no aviso da tela.
+  //
+  // Com um estado só, roteado pelo formulário estar aberto, a recusa do
+  // título do conteúdo saía ao lado do botão "Salvar medição", acusando
+  // uma medição que o usuário ainda não havia preenchido.
+  const [erroDaTela, definirErroDaTela] = useState<string | null>(null)
+  const [erroDoFormulario, definirErroDoFormulario] = useState<
+    string | null
+  >(null)
   const [enviando, definirEnviando] = useState(false)
 
   const [dadosDoConteudo, definirDadosDoConteudo] = useState(CONTEUDO_VAZIO)
@@ -85,9 +96,13 @@ export function ConteudoDetalhe() {
 
   const [medicao, definirMedicao] = useState(medicaoVazia)
   const [formularioAberto, definirFormularioAberto] = useState(false)
-  const [medicaoEmEdicao, definirMedicaoEmEdicao] = useState<number | null>(
-    null,
-  )
+  // A data original viaja junto do id. O cabeçalho do formulário lia o
+  // valor atual do campo, então corrigir a data fazia o título passar a
+  // afirmar que se edita a medição da data nova, que não existe.
+  const [medicaoEmEdicao, definirMedicaoEmEdicao] = useState<{
+    id: number
+    dataOriginal: string
+  } | null>(null)
   const [medicaoConfirmada, definirMedicaoConfirmada] = useState<
     number | null
   >(null)
@@ -124,7 +139,7 @@ export function ConteudoDetalhe() {
         return
       }
 
-      definirErro(mensagemDe(falha, alternativa))
+      definirErroDaTela(mensagemDe(falha, alternativa))
     },
     [navegar],
   )
@@ -205,7 +220,7 @@ export function ConteudoDetalhe() {
       return
     }
 
-    definirErro(null)
+    definirErroDaTela(null)
     definirConteudoSalvo(false)
     definirEnviando(true)
 
@@ -218,7 +233,7 @@ export function ConteudoDetalhe() {
       await carregarConteudo()
       definirConteudoSalvo(true)
     } catch (falha) {
-      definirErro(mensagemDe(falha, 'Não foi possível salvar o conteúdo.'))
+      definirErroDaTela(mensagemDe(falha, 'Não foi possível salvar o conteúdo.'))
     } finally {
       definirEnviando(false)
     }
@@ -229,7 +244,7 @@ export function ConteudoDetalhe() {
       return
     }
 
-    definirErro(null)
+    definirErroDaTela(null)
     definirEnviando(true)
 
     try {
@@ -239,7 +254,7 @@ export function ConteudoDetalhe() {
       // A falha desarma o botão. Deixá-lo em "Confirmar exclusão" faria o
       // próximo clique, talvez acidental, excluir sem a segunda etapa.
       definirConfirmandoExclusao(false)
-      definirErro(mensagemDe(falha, 'Não foi possível excluir o conteúdo.'))
+      definirErroDaTela(mensagemDe(falha, 'Não foi possível excluir o conteúdo.'))
     } finally {
       definirEnviando(false)
     }
@@ -249,7 +264,7 @@ export function ConteudoDetalhe() {
     // Cada ação começa com a tela limpa. O erro que sobrava descrevia o
     // que o usuário tentou antes, e passava a acusar o que ele está
     // fazendo agora.
-    definirErro(null)
+    definirErroDoFormulario(null)
     definirMedicaoConfirmada(null)
     definirMedicaoEmEdicao(null)
     definirMedicao(medicaoVazia())
@@ -257,9 +272,12 @@ export function ConteudoDetalhe() {
   }
 
   function abrirEdicaoDaMedicao(metrica: Metrica) {
-    definirErro(null)
+    definirErroDoFormulario(null)
     definirMedicaoConfirmada(null)
-    definirMedicaoEmEdicao(metrica.id)
+    definirMedicaoEmEdicao({
+      id: metrica.id,
+      dataOriginal: metrica.data_referencia,
+    })
     definirMedicao({
       visualizacoes: String(metrica.visualizacoes),
       curtidas: String(metrica.curtidas),
@@ -278,7 +296,7 @@ export function ConteudoDetalhe() {
       return
     }
 
-    definirErro(null)
+    definirErroDoFormulario(null)
 
     const medidas = {
       visualizacoes: inteiroDigitado(medicao.visualizacoes),
@@ -296,7 +314,7 @@ export function ConteudoDetalhe() {
     )
 
     if (recusada) {
-      definirErro(
+      definirErroDoFormulario(
         'Confira os números da medição. Use apenas números inteiros, ' +
           'com ou sem ponto de milhar, como 12000 ou 12.000.',
       )
@@ -318,7 +336,12 @@ export function ConteudoDetalhe() {
       if (medicaoEmEdicao === null) {
         await criarMetrica(token, identificador, dados)
       } else {
-        await atualizarMetrica(token, identificador, medicaoEmEdicao, dados)
+        await atualizarMetrica(
+          token,
+          identificador,
+          medicaoEmEdicao.id,
+          dados,
+        )
       }
 
       definirFormularioAberto(false)
@@ -327,11 +350,11 @@ export function ConteudoDetalhe() {
       // A unicidade por data é o erro que o usuário mais encontra, e a
       // mensagem genérica não diria o que fazer a respeito.
       if (falha instanceof ErroDaApi && falha.status === 409) {
-        definirErro(
+        definirErroDoFormulario(
           'Já existe uma medição deste conteúdo nesta data. Edite a medição existente ou escolha outra data.',
         )
       } else {
-        definirErro(mensagemDe(falha, 'Não foi possível salvar a medição.'))
+        definirErroDoFormulario(mensagemDe(falha, 'Não foi possível salvar a medição.'))
       }
     } finally {
       definirEnviando(false)
@@ -343,14 +366,21 @@ export function ConteudoDetalhe() {
       return
     }
 
-    definirErro(null)
+    definirErroDaTela(null)
     definirEnviando(true)
 
     try {
       await excluirMetrica(token, identificador, metricaId)
       await carregarMedicoes()
     } catch (falha) {
-      definirErro(mensagemDe(falha, 'Não foi possível excluir a medição.'))
+      // A falha desarma a linha, como já acontecia na exclusão do
+      // conteúdo. Deixá-la em "Confirmar" fazia cada clique seguinte
+      // mandar outro DELETE, sem reexigir a segunda etapa que é a razão
+      // de o botão ter duas.
+      definirMedicaoConfirmada(null)
+      definirErroDaTela(
+        mensagemDe(falha, 'Não foi possível excluir a medição.'),
+      )
     } finally {
       definirEnviando(false)
     }
@@ -385,11 +415,11 @@ export function ConteudoDetalhe() {
   if (conteudo === null) {
     return (
       <main className={estilos.pagina}>
-        {erro === null ? (
+        {erroDaTela === null ? (
           <p>Carregando…</p>
         ) : (
           <p className={estilos.erro} role="alert">
-            {erro}
+            {erroDaTela}
           </p>
         )}
       </main>
@@ -421,12 +451,13 @@ export function ConteudoDetalhe() {
         </button>
       </header>
 
-      {/* Com o formulário de medição aberto, o erro é dele e aparece junto
-          dos botões. Repetir aqui em cima dava duas cópias da mesma frase
-          em tela grande e nenhuma visível em tela pequena. */}
-      {erro !== null && !formularioAberto && (
+      {/* O erro do conteúdo fica aqui e o da medição dentro do formulário
+          dela. Com um estado só, roteado pelo formulário estar aberto, a
+          recusa do título aparecia ao lado do botão "Salvar medição",
+          acusando a medição que o usuário ainda não havia preenchido. */}
+      {erroDaTela !== null && (
         <p className={estilos.erro} role="alert">
-          {erro}
+          {erroDaTela}
         </p>
       )}
 
@@ -457,15 +488,15 @@ export function ConteudoDetalhe() {
           <FormularioDaMedicao
             dados={medicao}
             enviando={enviando}
-            erro={erro}
+            erro={erroDoFormulario}
             dataEmEdicao={
-              medicaoEmEdicao === null ? null : medicao.data_referencia
+              medicaoEmEdicao === null ? null : medicaoEmEdicao.dataOriginal
             }
             dataDaPublicacao={conteudo.data_publicacao}
             aoAlterar={alterarMedicao}
             aoEnviar={salvarMedicao}
             aoCancelar={() => {
-              definirErro(null)
+              definirErroDoFormulario(null)
               definirFormularioAberto(false)
             }}
           />

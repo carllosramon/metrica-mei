@@ -266,6 +266,16 @@ describe('ConteudoDetalhe', () => {
     expect(
       screen.getByRole('heading', { name: 'Editando a medição de 22/08/2026' }),
     ).toBeInTheDocument()
+
+    // Corrigir a data não muda de qual registro se trata. O cabeçalho
+    // lia o campo, então passava a nomear uma medição inexistente.
+    fireEvent.change(screen.getByLabelText('Data de referência'), {
+      target: { value: '2026-08-25' },
+    })
+
+    expect(
+      screen.getByRole('heading', { name: 'Editando a medição de 22/08/2026' }),
+    ).toBeInTheDocument()
   })
 
   it('pede confirmação antes de excluir o conteúdo', async () => {
@@ -444,6 +454,12 @@ describe('ConteudoDetalhe', () => {
     ).toBeInTheDocument()
     expect(
       within(tabela).getByRole('cell', { name: '22/08/2026' }),
+    ).toBeInTheDocument()
+
+    // E a linha desarma, como na exclusão do conteúdo. Continuar em
+    // "Confirmar" fazia cada clique mandar outro DELETE.
+    expect(
+      within(tabela).getByRole('button', { name: 'Excluir' }),
     ).toBeInTheDocument()
   })
 
@@ -686,6 +702,34 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
       screen.getByRole('heading', { name: 'Carrossel de dicas' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('cell', { name: '22/08/2026' })).toBeNull()
+  })
+
+  it('a recusa do conteúdo não aparece dentro do formulário da medição', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockRejectedValue(
+      new ErroDaApi(422, 'Título não pode ficar em branco.'),
+    )
+
+    renderizar()
+
+    // Os dois formulários ficam visíveis ao mesmo tempo, e é aí que um
+    // estado de erro só para os dois engana: a recusa do título saía ao
+    // lado do botão de salvar medição.
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    const aviso = await screen.findByText('Título não pode ficar em branco.')
+
+    expect(
+      screen.getByRole('button', { name: 'Salvar medição' }).closest('form'),
+    ).not.toContainElement(aviso)
   })
 
   it('trava os campos do conteúdo enquanto o salvamento está em voo', async () => {
