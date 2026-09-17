@@ -14,6 +14,10 @@ export type DadosEditaveis = {
 
 type Props = {
   dados: DadosEditaveis
+  // Além de desarmar o botão, trava os campos. Quem salva e continua
+  // digitando perdia o que escreveu, porque a recarga que segue o
+  // salvamento reescreve o formulário com a resposta do servidor — e o
+  // aviso de sucesso ainda aparecia por cima da perda.
   enviando: boolean
   // Salvar aqui não muda nada na tela, porque os campos já mostram o que
   // foi digitado. Sem um aviso, a única pista de que deu certo é o botão
@@ -33,6 +37,7 @@ export function FormularioDoConteudo({
   return (
     <form className={estilos.cartao} onSubmit={aoEnviar}>
       <Campo
+        disabled={enviando}
         rotulo="Título"
         value={dados.titulo}
         onChange={(evento) => aoAlterar('titulo', evento.target.value)}
@@ -42,6 +47,7 @@ export function FormularioDoConteudo({
 
       <div className={estilos.linhaDeCampos}>
         <Campo
+          disabled={enviando}
           rotulo="Plataforma"
           value={dados.plataforma}
           onChange={(evento) => aoAlterar('plataforma', evento.target.value)}
@@ -49,6 +55,7 @@ export function FormularioDoConteudo({
           maxLength={50}
         />
         <Campo
+          disabled={enviando}
           rotulo="Tipo"
           value={dados.tipo}
           onChange={(evento) => aoAlterar('tipo', evento.target.value)}
@@ -56,6 +63,7 @@ export function FormularioDoConteudo({
           maxLength={50}
         />
         <Campo
+          disabled={enviando}
           rotulo="Data de publicação"
           type="date"
           value={dados.data_publicacao}
@@ -68,6 +76,7 @@ export function FormularioDoConteudo({
       </div>
 
       <Campo
+        disabled={enviando}
         rotulo="URL da publicação"
         type="url"
         value={dados.url_publicacao}

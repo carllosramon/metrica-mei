@@ -688,6 +688,34 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     expect(screen.queryByRole('cell', { name: '22/08/2026' })).toBeNull()
   })
 
+  it('trava os campos do conteúdo enquanto o salvamento está em voo', async () => {
+    const usuario = userEvent.setup()
+
+    const salvamento = adiar<Conteudo>()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockReturnValue(salvamento.promessa)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    // Com os campos abertos durante o envio, digitar aqui era perda
+    // garantida: a recarga que segue o salvamento reescreve o formulário
+    // com a resposta do servidor, e o aviso de sucesso aparecia por cima.
+    expect(screen.getByLabelText('Tipo')).toBeDisabled()
+    expect(screen.getByLabelText('Título')).toBeDisabled()
+
+    await act(async () => {
+      salvamento.resolver(conteudo)
+    })
+
+    expect(screen.getByLabelText('Tipo')).toBeEnabled()
+  })
+
   it('salvar uma medição preserva a edição do conteúdo', async () => {
     const usuario = userEvent.setup()
 
