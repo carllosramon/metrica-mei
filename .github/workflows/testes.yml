@@ -124,8 +124,14 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: frontend
 
+      # O endereço é declarado, e não herdado do padrão do cliente. Na CI
+      # o build recusa sair sem ele, e depender do fallback deixava o
+      # ramo configurado do cliente HTTP sem execução em teste nenhum.
+      # É o mesmo endereço que o webServer do Playwright sobe.
       - run: npm run test:e2e
         working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:8000
 
       # O relatório só interessa quando algo quebra, e é ele que mostra em
       # que passo da jornada a falha aconteceu.
