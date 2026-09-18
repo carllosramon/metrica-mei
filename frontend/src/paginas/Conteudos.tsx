@@ -90,6 +90,12 @@ export function Conteudos() {
 
   function abrirFormulario() {
     definirErroDoFormulario(null)
+    // O formulário é recomposto ao abrir, e não só ao fechar. Inicializado
+    // uma vez na montagem, a data padrão era a de quando a página carregou:
+    // numa aba aberta às 23h50, o conteúdo cadastrado depois da meia-noite
+    // nascia com a data de ontem, que ainda vira o mínimo de todas as
+    // medições dele.
+    definirFormulario(formularioVazio())
     definirFormularioAberto(true)
   }
 
@@ -200,7 +206,7 @@ export function Conteudos() {
               alterar('url_publicacao', evento.target.value)
             }
             maxLength={500}
-            dica="Opcional. Precisa começar com http:// ou https://"
+            dica="Opcional. Endereço completo da publicação, começando com http:// ou https://"
           />
 
           {/* Junto dos botões, como na tela de detalhe. No topo da página

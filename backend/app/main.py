@@ -14,7 +14,7 @@ from app.controllers.metric_controller import (
 )
 from app.controllers.respostas import prazo_do_token
 from app.erros import registrar_erros
-from app.security.jwt import TokenService
+from app.security.jwt import PRAZO_MINIMO_EM_MINUTOS, TokenService
 
 
 _DESCRICAO = f"""
@@ -83,6 +83,17 @@ def verificar_configuracao(settings: Settings) -> None:
         settings.jwt_algorithm,
         settings.jwt_expires_minutes,
     )
+
+    # O prazo é conferido aqui, e não dentro do TokenService, porque um
+    # prazo no passado é forma legítima de forjar token vencido em teste.
+    # O que não pode é a aplicação subir assim: com zero, o login devolve
+    # 200 e a requisição seguinte devolve 401, e a falha aparece ao
+    # usuário como sessão que não começa.
+    if settings.jwt_expires_minutes < PRAZO_MINIMO_EM_MINUTOS:
+        raise ValueError(
+            "JWT_EXPIRES_MINUTES precisa ser de ao menos "
+            f"{PRAZO_MINIMO_EM_MINUTOS} minuto."
+        )
 
 
 @asynccontextmanager

@@ -1005,3 +1005,54 @@ def test_publication_date_uses_the_business_calendar(
     )
 
     assert recusado.status_code == 422
+
+
+def test_update_content_of_another_user_returns_404_for_empty_payload(
+    client,
+):
+    headers = authenticated_headers(client)
+
+    criado = client.post(
+        "/conteudos",
+        headers=headers,
+        json={
+            "titulo": "Conteúdo do Carlos",
+            "plataforma": "Instagram",
+            "tipo": "Reels",
+            "data_publicacao": date.today().isoformat(),
+        },
+    )
+
+    assert criado.status_code == 201
+
+    outra_conta = client.post(
+        "/auth/register",
+        json={
+            "nome": "Joao",
+            "email": "joao@email.com",
+            "senha": "outrasenha",
+        },
+    )
+
+    assert outra_conta.status_code == 201
+
+    login = client.post(
+        "/auth/login",
+        json={"email": "joao@email.com", "senha": "outrasenha"},
+    )
+
+    intruso = {
+        "Authorization": f"Bearer {login.json()['access_token']}"
+    }
+
+    # Corpo vazio é recusado, mas a posse vem antes: o critério 3 do RF06
+    # promete 404 para qualquer edição de registro alheio, e o 422 dizia
+    # ao intruso que o problema era o corpo dele.
+    resposta = client.patch(
+        f"/conteudos/{criado.json()['id']}",
+        headers=intruso,
+        json={},
+    )
+
+    assert resposta.status_code == 404
+    assert resposta.json() == {"detail": "Conteúdo não encontrado."}

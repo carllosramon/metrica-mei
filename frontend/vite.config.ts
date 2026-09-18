@@ -65,10 +65,10 @@ export default defineConfig({
       // escolhida no chute. Serve de trava contra queda, e sobe junto quando
       // a cobertura sobe.
       thresholds: {
-        statements: 92,
-        branches: 85,
-        functions: 94,
-        lines: 92,
+        statements: 94,
+        branches: 89,
+        functions: 95,
+        lines: 94,
       },
     },
   },

@@ -167,9 +167,11 @@ Ausência de dados não é erro: é o estado inicial de toda conta recém-criada
 | 1 a 5, 11, 12 | `tests/unit/test_dashboard_service.py`, `frontend/e2e/painel-consolidado.spec.ts` (duas redes e duas datas, ponta a ponta) |
 | 6, 7 | `tests/unit/test_dashboard_service.py` |
 | 8, 9 | `tests/unit/test_dashboard_service.py`, `frontend/src/paginas/Painel.test.tsx` |
-| 10 | `tests/unit/test_dashboard_service.py`, `tests/integration/test_dashboard_api.py` |
+| 10 | `tests/unit/test_dashboard_service.py` (`test_ranking_is_limited_to_five_contents`, que afirma quais cinco e em que ordem) |
 | 13, 14 | `tests/integration/test_dashboard_api.py` |
 | 15 | `frontend/src/paginas/Painel.test.tsx`, `frontend/e2e/jornada.spec.ts` |
+
+O `tests/integration/test_dashboard_api.py` estava citado no critério 10 e não o verifica: nenhum dos seus casos cria mais de dois conteúdos, então o corte em cinco nunca é exercitado ali.
 
 Requisitos relacionados: RF02 e RF03 (dados de origem), RF04 (fórmula reaproveitada), RF06 (isolamento), RNF01, RNF02, RNF03.
 

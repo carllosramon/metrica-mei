@@ -34,3 +34,27 @@ def test_o_servico_de_token_faz_a_mesma_exigencia():
     # passar pela subida, como um uvicorn com o lifespan desligado.
     with pytest.raises(ValueError, match="32 caracteres"):
         TokenService("curto")
+
+
+@pytest.mark.parametrize(
+    "minutos",
+    [0, -1, -30],
+)
+def test_recusa_subir_com_prazo_de_token_sem_serventia(minutos):
+    # Com prazo zero a API subia normalmente e todo token nascia
+    # expirado: o login devolvia 200 e a requisição seguinte, 401. Para
+    # o usuário isso aparece como sessão que não começa, sem explicação.
+    with pytest.raises(ValueError, match="JWT_EXPIRES_MINUTES"):
+        verificar_configuracao(
+            Settings(
+                jwt_secret=SEGREDO_BOM,
+                jwt_expires_minutes=minutos,
+            )
+        )
+
+
+def test_o_servico_de_token_aceita_prazo_no_passado():
+    # A exigência do prazo fica na subida, e não no serviço, porque um
+    # prazo negativo é a forma de forjar token vencido nos testes de
+    # sessão expirada.
+    TokenService(SEGREDO_BOM, "HS256", -1)

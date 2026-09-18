@@ -82,7 +82,7 @@ export function FormularioDoConteudo({
         value={dados.url_publicacao}
         onChange={(evento) => aoAlterar('url_publicacao', evento.target.value)}
         maxLength={500}
-        dica="Deixe em branco para remover a URL"
+        dica="Endereço completo, começando com http:// ou https://. Deixe em branco para remover."
       />
 
       <div className={estilos.botoes}>

@@ -7,6 +7,7 @@ import { criarConteudo, listarConteudos } from '../api/conteudos'
 import type { ConteudoDaLista } from '../api/tipos'
 import { ContextoAutenticacao } from '../autenticacao/contexto'
 import type { ValorDaAutenticacao } from '../autenticacao/contexto'
+import { dataDeHoje } from '../formatacao'
 import { adiar } from '../testes/adiar'
 import { Conteudos } from './Conteudos'
 
@@ -14,6 +15,13 @@ vi.mock('../api/conteudos', () => ({
   listarConteudos: vi.fn(),
   criarConteudo: vi.fn(),
 }))
+
+// Só a data de hoje é substituível. O resto da formatação segue real.
+vi.mock('../formatacao', async (importarOriginal) => {
+  const original = await importarOriginal<typeof import('../formatacao')>()
+
+  return { ...original, dataDeHoje: vi.fn(original.dataDeHoje) }
+})
 
 const autenticacao: ValorDaAutenticacao = {
   token: 'token-de-teste',
@@ -113,6 +121,37 @@ describe('Conteudos', () => {
     ).toBeInTheDocument()
 
     expect(screen.queryByText('Carregando…')).not.toBeInTheDocument()
+  })
+
+  it('a data padrão do conteúdo é a de quando o formulário abre', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(listarConteudos).mockResolvedValue([])
+
+    renderizar()
+
+    vi.mocked(dataDeHoje).mockReturnValue('2026-09-09')
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Novo conteúdo' }),
+    )
+
+    expect(screen.getByLabelText('Data de publicação')).toHaveValue(
+      '2026-09-09',
+    )
+
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    // Virou o dia com a aba aberta. O formulário era composto uma vez na
+    // montagem, então a data ficava presa em quando a página carregou, e
+    // o conteúdo nascia com a data de ontem.
+    vi.mocked(dataDeHoje).mockReturnValue('2026-09-10')
+
+    await usuario.click(screen.getByRole('button', { name: 'Novo conteúdo' }))
+
+    expect(screen.getByLabelText('Data de publicação')).toHaveValue(
+      '2026-09-10',
+    )
   })
 
   it('envia o formulário e recarrega a lista', async () => {
