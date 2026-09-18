@@ -133,13 +133,19 @@ jobs:
         env:
           VITE_API_URL: http://localhost:8000
 
-      # O relatório só interessa quando algo quebra, e é ele que mostra em
-      # que passo da jornada a falha aconteceu.
+      # O diagnóstico só interessa quando algo quebra. O test-results é o
+      # que importa: é onde o Playwright grava o contexto da falha. O
+      # playwright-report fica na lista por completude, mas o relator em
+      # uso é o list, que não escreve relatório, então esse caminho
+      # sozinho deixava o anexo sempre vazio.
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: relatorio-da-jornada
-          path: frontend/playwright-report/
+          name: diagnostico-da-jornada
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          if-no-files-found: warn
           retention-days: 7
 
   postgresql:
