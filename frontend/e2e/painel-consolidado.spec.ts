@@ -48,7 +48,23 @@ async function registrarMedicao(
   await page.getByLabel('Visualizações').fill(medidas.visualizacoes)
   await page.getByLabel('Alcance').fill(medidas.alcance)
   await page.getByLabel('Curtidas').fill(medidas.curtidas)
+
+  // Os cinco campos são obrigatórios e nascem vazios, então os que este
+  // cenário não usa precisam receber zero explicitamente.
+  await page.getByLabel('Comentários').fill('0')
+  await page.getByLabel('Compartilhamentos').fill('0')
   await page.getByRole('button', { name: 'Salvar medição' }).click()
+
+  // O cabeçalho do formulário só desaparece quando a gravação passa, e é
+  // por ele que se espera. O botão não serve de sinal: ele vira
+  // "Salvando…" no instante do clique, então qualquer espera por ele
+  // sumir termina antes de o POST sair.
+  //
+  // Sem essa espera, o passo seguinte abria o painel antes de a medição
+  // existir, e o total vinha com um número a menos.
+  await expect(
+    page.getByRole('heading', { name: 'Nova medição' }),
+  ).toBeHidden()
 }
 
 // A jornada principal usa uma rede só e uma data por conteúdo, e por

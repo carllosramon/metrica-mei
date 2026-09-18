@@ -12,13 +12,46 @@ import { ContextoAutenticacao } from './contexto'
 
 const CHAVE_DO_TOKEN = 'metricamei.token'
 
+// Navegador com dados de site bloqueados levanta no acesso ao
+// localStorage, e não devolve nulo. Ler durante a renderização derrubava
+// a árvore inteira; escrever era pior, porque a exceção subia pelo clique
+// e a sessão ficava aberta numa máquina compartilhada com o usuário certo
+// de que havia saído.
+//
+// O estado em memória é a verdade da sessão. O armazenamento só existe
+// para ela sobreviver ao recarregamento, então falhar nele degrada o
+// conforto, não a segurança.
+function lerTokenGuardado(): string | null {
+  try {
+    return localStorage.getItem(CHAVE_DO_TOKEN)
+  } catch {
+    return null
+  }
+}
+
+function guardarTokenNoNavegador(token: string): void {
+  try {
+    localStorage.setItem(CHAVE_DO_TOKEN, token)
+  } catch {
+    // Sessão só desta aba: entrar precisa funcionar de todo jeito.
+  }
+}
+
+function apagarTokenGuardado(): void {
+  try {
+    localStorage.removeItem(CHAVE_DO_TOKEN)
+  } catch {
+    // Nada a fazer: se não deu para gravar, não há o que apagar.
+  }
+}
+
 type Props = {
   children: ReactNode
 }
 
 export function ProvedorAutenticacao({ children }: Props) {
   const [token, definirToken] = useState<string | null>(() =>
-    localStorage.getItem(CHAVE_DO_TOKEN),
+    lerTokenGuardado(),
   )
   const [usuario, definirUsuario] = useState<Usuario | null>(null)
   const [verificando, definirVerificando] = useState(() => token !== null)
@@ -33,10 +66,13 @@ export function ProvedorAutenticacao({ children }: Props) {
   }, [token])
 
   const encerrarSessao = useCallback(() => {
-    localStorage.removeItem(CHAVE_DO_TOKEN)
+    // O estado sai primeiro, e o armazenamento depois: se apagar falhar,
+    // a sessão já caiu nesta aba, que é o que o usuário pediu ao clicar
+    // em "Sair".
     definirToken(null)
     definirUsuario(null)
     definirVerificando(false)
+    apagarTokenGuardado()
   }, [])
 
   useEffect(() => {
@@ -103,10 +139,10 @@ export function ProvedorAutenticacao({ children }: Props) {
   }, [token, encerrarSessao])
 
   const guardarToken = useCallback((novoToken: string) => {
-    localStorage.setItem(CHAVE_DO_TOKEN, novoToken)
     definirSessaoExpirada(false)
     definirVerificando(true)
     definirToken(novoToken)
+    guardarTokenNoNavegador(novoToken)
   }, [])
 
   const entrarNaConta = useCallback(

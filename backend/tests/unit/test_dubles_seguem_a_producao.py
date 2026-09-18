@@ -2,8 +2,8 @@
 
 Os testes de serviço rodam sobre os dublês. Onde eles são mais permissivos
 que a produção, o teste aprova uma semântica que a aplicação não tem, e o
-defeito só aparece com o banco de verdade. Estes casos fixam as quatro
-divergências que existiam.
+defeito só aparece com o banco de verdade. Cada caso aqui fixa uma
+divergência que existiu entre os dois.
 """
 
 from dataclasses import replace
@@ -117,3 +117,49 @@ def test_email_repetido_e_recusado():
     # pelo e-mail e encontra sempre a primeira.
     with pytest.raises(UserPersistenceConflictError):
         cadastrar()
+
+
+def test_excluir_conteudo_de_outro_dono_nao_apaga():
+    repositorio = InMemoryContentRepository()
+
+    conteudo = conteudo_de(repositorio, usuario_id=1)
+
+    # A produção filtra por id e dono e não faz nada quando não casa.
+    # Com o pop pelo id, o dublê apagava registro alheio e aprovaria um
+    # caminho que em produção seria silenciosamente ignorado.
+    repositorio.delete(replace(conteudo, usuario_id=2))
+
+    assert (
+        repositorio.get_by_id_and_user(conteudo.id, 1) is not None
+    )
+
+
+def test_excluir_metrica_de_outro_conteudo_nao_apaga():
+    repositorio = InMemoryMetricRepository()
+
+    metrica = metrica_de(repositorio, conteudo_id=7)
+
+    repositorio.delete(replace(metrica, conteudo_id=8))
+
+    assert (
+        repositorio.get_by_id_and_content(metrica.id, 7) is not None
+    )
+
+
+def test_atualizar_conteudo_nao_reescreve_o_criado_em():
+    repositorio = InMemoryContentRepository()
+
+    conteudo = conteudo_de(repositorio)
+
+    # A produção atualiza apenas os cinco campos editáveis, então um
+    # carimbo novo enviado junto é descartado pelo banco.
+    atualizado = repositorio.update(
+        replace(
+            conteudo,
+            titulo="Outro título",
+            criado_em=datetime(2000, 1, 1, tzinfo=timezone.utc),
+        )
+    )
+
+    assert atualizado.titulo == "Outro título"
+    assert atualizado.criado_em == conteudo.criado_em

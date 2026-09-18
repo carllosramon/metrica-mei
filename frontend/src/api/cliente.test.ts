@@ -114,6 +114,80 @@ describe('chamarApi', () => {
     expect(requisicao.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
   })
 
+  it('prazo estourado no meio do corpo não vira erro de endereço', async () => {
+    const estourou = new Error('The operation was aborted due to timeout')
+    estourou.name = 'TimeoutError'
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw estourou
+        },
+      } as unknown as Response),
+    )
+
+    // O prazo do AbortSignal também corta o corpo. Como o fetch já
+    // resolveu, quem rejeita é o json(), e isso saía como "confira o
+    // endereço da API" para quem só estava numa rede ruim.
+    await expect(chamarApi('/painel')).rejects.toThrow(
+      'O servidor demorou demais para responder.',
+    )
+  })
+
+  it('rede caída no meio do corpo é falha de rede', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new TypeError('network error')
+        },
+      } as unknown as Response),
+    )
+
+    await expect(chamarApi('/painel')).rejects.toThrow(
+      'Não foi possível falar com o servidor.',
+    )
+  })
+
+  it('devolve vazio no 204 sem tentar ler o corpo', async () => {
+    const corpo = vi.fn()
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 204,
+        json: corpo,
+      } as unknown as Response),
+    )
+
+    // É o que toda exclusão devolve. Sem o curto-circuito, o json()
+    // estoura no corpo vazio e a tela acusa endereço errado ao excluir.
+    await expect(
+      chamarApi('/conteudos/7', { metodo: 'DELETE' }),
+    ).resolves.toBeUndefined()
+
+    expect(corpo).not.toHaveBeenCalled()
+  })
+
+  it('tem mensagem de último recurso quando o erro não traz detail', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(responderCom(502, { erro: 'bad gateway' })),
+    )
+
+    // Um proxy no caminho responde sem o formato do FastAPI. Sem esta
+    // saída, a tela mostraria "undefined" ao usuário.
+    await expect(chamarApi('/painel')).rejects.toThrow(
+      'Erro inesperado do servidor (502).',
+    )
+  })
+
   it('recusa um 200 que não traz JSON', async () => {
     vi.stubGlobal(
       'fetch',

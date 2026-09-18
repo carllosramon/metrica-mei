@@ -5,6 +5,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 
 
 TAMANHO_MINIMO_DO_SEGREDO = 32
+PRAZO_MINIMO_EM_MINUTOS = 1
 
 
 class TokenService:

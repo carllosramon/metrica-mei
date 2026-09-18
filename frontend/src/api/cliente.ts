@@ -10,6 +10,15 @@ const SEM_RESPOSTA_HTTP = 0
 // que travou.
 const PRAZO_DA_RESPOSTA = 30_000
 
+const SEM_RESPOSTA_DO_SERVIDOR = 'Não foi possível falar com o servidor.'
+
+const PRAZO_ESTOURADO =
+  'O servidor demorou demais para responder. Tente de novo.'
+
+const RESPOSTA_FORA_DO_CONTRATO =
+  'O servidor respondeu algo que não é a resposta esperada. ' +
+  'Confira o endereço da API.'
+
 // Nestes caminhos o 401 significa credencial errada, e não sessão perdida.
 // Derrubar a sessão aqui apagaria o token de quem só errou a senha na tela
 // de login estando autenticado em outra aba.
@@ -73,6 +82,21 @@ function extrairMensagem(conteudo: unknown, status: number): string {
   return `Erro inesperado do servidor (${status}).`
 }
 
+// A mesma tradução serve ao fetch e à leitura do corpo, porque a falha de
+// transporte pode aparecer nos dois: o prazo estourado no meio do corpo
+// rejeita o json(), não o fetch.
+function erroDeTransporte(falha: unknown): ErroDaApi {
+  // O prazo tem mensagem própria porque a saída é outra: aqui o servidor
+  // foi encontrado, e tentar de novo costuma resolver.
+  if (falha instanceof Error && falha.name === 'TimeoutError') {
+    return new ErroDaApi(SEM_RESPOSTA_HTTP, PRAZO_ESTOURADO)
+  }
+
+  // Falha de rede não tem status HTTP: o backend pode estar fora do ar ou
+  // o navegador ter bloqueado a origem.
+  return new ErroDaApi(SEM_RESPOSTA_HTTP, SEM_RESPOSTA_DO_SERVIDOR)
+}
+
 function perdeuSessao(caminho: string, status: number): boolean {
   if (status !== 401) {
     return false
@@ -108,21 +132,7 @@ export async function chamarApi<T>(
           : JSON.stringify(opcoes.corpo),
     })
   } catch (falha) {
-    // O prazo estourado tem mensagem própria porque a saída é outra:
-    // aqui o servidor foi encontrado, e tentar de novo costuma resolver.
-    if (falha instanceof Error && falha.name === 'TimeoutError') {
-      throw new ErroDaApi(
-        SEM_RESPOSTA_HTTP,
-        'O servidor demorou demais para responder. Tente de novo.',
-      )
-    }
-
-    // Falha de rede não tem status HTTP: o backend pode estar fora do ar ou
-    // o navegador ter bloqueado a origem.
-    throw new ErroDaApi(
-      SEM_RESPOSTA_HTTP,
-      'Não foi possível falar com o servidor.',
-    )
+    throw erroDeTransporte(falha)
   }
 
   if (resposta.status === 204) {
@@ -130,23 +140,30 @@ export async function chamarApi<T>(
   }
 
   let conteudo: unknown = null
-  let corpoIlegivel = false
+  let falhaNoCorpo: unknown = null
 
   try {
     conteudo = await resposta.json()
-  } catch {
-    corpoIlegivel = true
+  } catch (falha) {
+    falhaNoCorpo = falha
   }
 
-  // Um 200 que não traz JSON não é resposta desta API: é o index.html que
+  // Corpo interrompido é falha de transporte, e não de contrato. O prazo
+  // do AbortSignal também corta o corpo, e a conexão pode cair durante o
+  // download: nos dois casos o fetch já resolveu, então quem rejeita é o
+  // json(). Sem separar, uma queda de rede em 4G pedia ao usuário para
+  // conferir o endereço da API, que não era o problema e que ele não tem
+  // como conferir.
+  if (falhaNoCorpo !== null && !(falhaNoCorpo instanceof SyntaxError)) {
+    throw erroDeTransporte(falhaNoCorpo)
+  }
+
+  // JSON malformado num 2xx não é resposta desta API: é o index.html que
   // o servidor de arquivos devolve quando o caminho não chega ao backend.
   // Tratado como nulo, ele virava uma lista vazia ou um "Carregando…" que
   // não terminava nunca, sem nada na tela explicando o que houve.
-  if (resposta.ok && corpoIlegivel) {
-    throw new ErroDaApi(
-      resposta.status,
-      'O servidor respondeu algo que não é a resposta esperada. Confira o endereço da API.',
-    )
+  if (resposta.ok && falhaNoCorpo !== null) {
+    throw new ErroDaApi(resposta.status, RESPOSTA_FORA_DO_CONTRATO)
   }
 
   if (!resposta.ok) {

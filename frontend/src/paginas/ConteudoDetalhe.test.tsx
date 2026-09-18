@@ -106,6 +106,53 @@ function renderizar() {
   )
 }
 
+// A volta para a lista só é observável se a rota de destino existir na
+// árvore, senão o React Router navega para o vazio.
+function renderizarComDestino() {
+  return render(
+    <ContextoAutenticacao.Provider value={autenticacao}>
+      <MemoryRouter initialEntries={['/conteudos/7']}>
+        <Routes>
+          <Route
+            path="/conteudos/:conteudoId"
+            element={<ConteudoDetalhe />}
+          />
+          <Route path="/conteudos" element={<p>Estou na lista</p>} />
+        </Routes>
+      </MemoryRouter>
+    </ContextoAutenticacao.Provider>,
+  )
+}
+
+type RotuloDeMedida =
+  | 'Visualizações'
+  | 'Alcance'
+  | 'Curtidas'
+  | 'Comentários'
+  | 'Compartilhamentos'
+
+// Os cinco campos são obrigatórios e nascem vazios, então todo teste que
+// salva uma medição precisa preenchê-los, mesmo quando só um deles importa
+// para o que ele verifica.
+function preencherMedidas(
+  valores: Partial<Record<RotuloDeMedida, string>> = {},
+) {
+  const medidas: Record<RotuloDeMedida, string> = {
+    Visualizações: '3200',
+    Alcance: '1450',
+    Curtidas: '110',
+    Comentários: '14',
+    Compartilhamentos: '22',
+    ...valores,
+  }
+
+  for (const [rotulo, valor] of Object.entries(medidas)) {
+    fireEvent.change(screen.getByLabelText(rotulo), {
+      target: { value: valor },
+    })
+  }
+}
+
 afterEach(() => {
   vi.clearAllMocks()
 })
@@ -167,6 +214,9 @@ describe('ConteudoDetalhe', () => {
     await usuario.click(
       await screen.findByRole('button', { name: 'Registrar medição' }),
     )
+
+    preencherMedidas()
+
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),
     )
@@ -184,6 +234,32 @@ describe('ConteudoDetalhe', () => {
     expect(
       screen.getByRole('button', { name: 'Salvar medição' }).closest('form'),
     ).toContainElement(aviso)
+  })
+
+  it('recusa a medição salva sem nenhum número digitado', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+
+    // Os campos vinham com '0' dentro, então este clique gravava um
+    // retrato zerado na data de hoje. Como o painel lê só a medição mais
+    // recente, o conteúdo saía dos totais e ninguém era avisado.
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar medição' }),
+    )
+
+    expect(criarMetrica).not.toHaveBeenCalled()
+
+    // Zerar é uma escolha possível, e continua possível: o que deixa de
+    // existir é o caminho de gravar zero sem querer.
+    expect(screen.getByLabelText('Alcance')).toHaveValue(null)
   })
 
   it('o formulário diz se está criando ou corrigindo uma medição', async () => {
@@ -204,6 +280,16 @@ describe('ConteudoDetalhe', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))
     await usuario.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(
+      screen.getByRole('heading', { name: 'Editando a medição de 22/08/2026' }),
+    ).toBeInTheDocument()
+
+    // Corrigir a data não muda de qual registro se trata. O cabeçalho
+    // lia o campo, então passava a nomear uma medição inexistente.
+    fireEvent.change(screen.getByLabelText('Data de referência'), {
+      target: { value: '2026-08-25' },
+    })
 
     expect(
       screen.getByRole('heading', { name: 'Editando a medição de 22/08/2026' }),
@@ -387,6 +473,12 @@ describe('ConteudoDetalhe', () => {
     expect(
       within(tabela).getByRole('cell', { name: '22/08/2026' }),
     ).toBeInTheDocument()
+
+    // E a linha desarma, como na exclusão do conteúdo. Continuar em
+    // "Confirmar" fazia cada clique mandar outro DELETE.
+    expect(
+      within(tabela).getByRole('button', { name: 'Excluir' }),
+    ).toBeInTheDocument()
   })
 
   it('fica na tela e mostra o motivo quando excluir o conteúdo falha', async () => {
@@ -468,6 +560,8 @@ describe('ConteudoDetalhe', () => {
     expect(
       within(tabela).getByRole('button', { name: 'Confirmar' }),
     ).toBeInTheDocument()
+
+    preencherMedidas()
 
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),
@@ -628,6 +722,102 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     expect(screen.queryByRole('cell', { name: '22/08/2026' })).toBeNull()
   })
 
+  it('conteúdo inexistente devolve o usuário à lista', async () => {
+    vi.mocked(buscarConteudo).mockRejectedValue(
+      new ErroDaApi(404, 'Conteúdo não encontrado.'),
+    )
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizarComDestino()
+
+    // É o caminho de quem abre um link antigo, de um conteúdo já
+    // excluído, ou de um id de outra conta, que o backend também responde
+    // 404 para não revelar que o registro existe. Não havia teste nenhum
+    // aqui: o único que parecia cobrir usa /conteudos/abc, que para antes
+    // de chamar a API.
+    expect(await screen.findByText('Estou na lista')).toBeInTheDocument()
+  })
+
+  it('mostra o motivo quando a carga do conteúdo falha sem ser 404', async () => {
+    vi.mocked(buscarConteudo).mockRejectedValue(
+      new ErroDaApi(500, 'O servidor caiu.'),
+    )
+    vi.mocked(listarMetricas).mockResolvedValue([])
+
+    renderizar()
+
+    // Erro de servidor não é conteúdo inexistente: tirar o usuário da
+    // tela aqui esconderia um problema que pode passar sozinho.
+    expect(await screen.findByText('O servidor caiu.')).toBeInTheDocument()
+  })
+
+  it('mostra o motivo quando a carga das medições falha', async () => {
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockRejectedValue(new Error('caiu'))
+
+    renderizar()
+
+    expect(
+      await screen.findByText('Não foi possível carregar as medições.'),
+    ).toBeInTheDocument()
+  })
+
+  it('a recusa do conteúdo não aparece dentro do formulário da medição', async () => {
+    const usuario = userEvent.setup()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockRejectedValue(
+      new ErroDaApi(422, 'Título não pode ficar em branco.'),
+    )
+
+    renderizar()
+
+    // Os dois formulários ficam visíveis ao mesmo tempo, e é aí que um
+    // estado de erro só para os dois engana: a recusa do título saía ao
+    // lado do botão de salvar medição.
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Registrar medição' }),
+    )
+    await usuario.click(
+      screen.getByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    const aviso = await screen.findByText('Título não pode ficar em branco.')
+
+    expect(
+      screen.getByRole('button', { name: 'Salvar medição' }).closest('form'),
+    ).not.toContainElement(aviso)
+  })
+
+  it('trava os campos do conteúdo enquanto o salvamento está em voo', async () => {
+    const usuario = userEvent.setup()
+
+    const salvamento = adiar<Conteudo>()
+
+    vi.mocked(buscarConteudo).mockResolvedValue(conteudo)
+    vi.mocked(listarMetricas).mockResolvedValue([])
+    vi.mocked(atualizarConteudo).mockReturnValue(salvamento.promessa)
+
+    renderizar()
+
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Salvar alterações' }),
+    )
+
+    // Com os campos abertos durante o envio, digitar aqui era perda
+    // garantida: a recarga que segue o salvamento reescreve o formulário
+    // com a resposta do servidor, e o aviso de sucesso aparecia por cima.
+    expect(screen.getByLabelText('Tipo')).toBeDisabled()
+    expect(screen.getByLabelText('Título')).toBeDisabled()
+
+    await act(async () => {
+      salvamento.resolver(conteudo)
+    })
+
+    expect(screen.getByLabelText('Tipo')).toBeEnabled()
+  })
+
   it('salvar uma medição preserva a edição do conteúdo', async () => {
     const usuario = userEvent.setup()
 
@@ -644,6 +834,9 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     await usuario.click(
       screen.getByRole('button', { name: 'Registrar medição' }),
     )
+
+    preencherMedidas()
+
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),
     )
@@ -701,9 +894,7 @@ describe('ConteudoDetalhe — resposta obsoleta', () => {
     // O campo numérico aceita "12.000" como número válido, e Number() lê
     // isso como 12. É o formato em que o Instagram mostra o alcance, ou
     // seja, o que o usuário copia.
-    fireEvent.change(screen.getByLabelText('Alcance'), {
-      target: { value: '12.000' },
-    })
+    preencherMedidas({ Alcance: '12.000' })
 
     await usuario.click(
       screen.getByRole('button', { name: 'Salvar medição' }),

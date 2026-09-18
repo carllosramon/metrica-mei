@@ -72,7 +72,12 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
 
   await test.step('a mesma data é recusada com orientação', async () => {
     await page.getByRole('button', { name: 'Registrar medição' }).click()
+
+    await page.getByLabel('Visualizações').fill('3300')
     await page.getByLabel('Alcance').fill('900')
+    await page.getByLabel('Curtidas').fill('115')
+    await page.getByLabel('Comentários').fill('14')
+    await page.getByLabel('Compartilhamentos').fill('22')
     await page.getByRole('button', { name: 'Salvar medição' }).click()
 
     await expect(
@@ -106,7 +111,14 @@ test('jornada completa: da conta nova ao painel com engajamento', async ({
       .click()
     await page.getByRole('button', { name: 'Registrar medição' }).click()
 
+    // Os zeros são digitados, e não herdados do formulário: os campos
+    // nascem vazios de propósito, para o `required` valer. Este passo
+    // registra que alcance zero é uma escolha explícita do usuário.
+    await page.getByLabel('Visualizações').fill('0')
+    await page.getByLabel('Alcance').fill('0')
     await page.getByLabel('Curtidas').fill('5')
+    await page.getByLabel('Comentários').fill('0')
+    await page.getByLabel('Compartilhamentos').fill('0')
     await page.getByRole('button', { name: 'Salvar medição' }).click()
 
     // Alcance zero não é desempenho zero: o índice não é calculável.

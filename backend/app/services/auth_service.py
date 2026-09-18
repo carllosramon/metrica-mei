@@ -82,6 +82,11 @@ class AuthService:
         )
 
         if user is None:
+            # O texto e o status já são iguais nos dois casos, de
+            # propósito, para esta rota não virar um verificador de quais
+            # e-mails têm conta. Sem gastar o tempo da verificação aqui, o
+            # relógio dizia o que a mensagem esconde.
+            self._password_service.consumir_tempo_de_verificacao(senha)
             raise InvalidCredentialsError
 
         if not self._password_service.verify(

@@ -366,7 +366,7 @@ npm test
 ```
 
 ```text
-145 testes passando
+158 testes passando
 ```
 
 Com medição de cobertura:
@@ -376,10 +376,10 @@ npm run test:coverage
 ```
 
 ```text
-Statements   : 92.59%
-Branches     : 85.71%
-Functions    : 94.28%
-Lines        : 92.51%
+Statements   : 94.62%
+Branches     : 89.21%
+Functions    : 95.13%
+Lines        : 94.56%
 ```
 
 O piso configurado é o valor medido, arredondado para baixo, e a execução
@@ -388,8 +388,10 @@ entrada, as declarações de tipo e os próprios testes.
 
 Os módulos de `src/api` são exercitados contra o cliente HTTP real, com o
 `fetch` simulado na ponta, fixando caminho, método e token de cada operação.
-A tela de detalhe tem os caminhos de falha cobertos, salvar, editar e excluir
-com o servidor recusando. O que segue sem teste unitário direto são os
+A tela de detalhe tem os caminhos de falha cobertos: salvar, editar e excluir
+com o servidor recusando, e também carregar, que até o Marco 0.20 não tinha
+teste nenhum — a volta para a lista no `404` de conteúdo inexistente ou de
+outra conta nunca era exercitada. O que segue sem teste unitário direto são os
 componentes de moldura, como layout e navegação, que a jornada de ponta a
 ponta atravessa em navegador real.
 
@@ -646,7 +648,7 @@ Validam a integração entre componentes reais da aplicação, incluindo API, au
 No estado atual do desenvolvimento:
 
 ```text
-319 testes passando
+330 testes passando
 ```
 
 Com medição de cobertura:
@@ -657,20 +659,31 @@ python -m coverage report
 ```
 
 ```text
-995 instruções, 12 sem cobrir, 99%
+1002 instruções e 166 ramos, 12 e 8 sem cobrir, 98,29%
 ```
 
-O piso configurado no `.coveragerc` é 99, o valor medido arredondado para
-baixo, e o `coverage report` reprova abaixo dele. As doze instruções que
-faltam estão espalhadas por seis arquivos, quase todas em ramos de erro de
-infraestrutura: escolha de dialeto na conexão, falha de sessão nas
-dependências e colisões de escrita que só um banco concorrente produz.
+A medição inclui **ramo**, e não só linha. Sem isso, inverter um operador de
+comparação mantinha a linha coberta e o número intacto: trocar `posicao == 1`
+por `>=` no repositório de métricas faria o painel somar o histórico inteiro
+em vez do retrato mais recente, com a suíte verde. O `precision = 2` também é
+deliberado, porque com zero casas o `coverage` arredondava antes de comparar
+e um piso de 99 passava com 98,79% medido.
+
+O piso configurado no `.coveragerc` é 98, o valor de ramo medido arredondado
+para baixo, e o `coverage report` reprova abaixo dele. O que falta está
+quase todo em ramos de erro de infraestrutura: escolha de dialeto na conexão,
+falha de sessão nas dependências e colisões de escrita que só um banco
+concorrente produz.
 
 ## Integração contínua
 
 Cada push e cada pull request disparam quatro trabalhos paralelos: backend,
 frontend, jornada de ponta a ponta e validação em PostgreSQL 16. O job de
-PostgreSQL aplica todas as migrations e inspeciona o schema criado. Os jobs de
+PostgreSQL aplica todas as migrations, confere o schema contra os modelos com
+`alembic check` e roda a suíte inteira contra o banco, com `TEST_DATABASE_URL`
+apontada para ele — então as consultas reais da aplicação, inclusive o
+`row_number()` do painel, são exercitadas no banco de produção previsto, e não
+só no SQLite. Os jobs de
 backend e de frontend rodam as suítes com medição de cobertura, então uma queda
 abaixo do piso de qualquer um dos lados reprova a branch. Quando a jornada de navegador falha, o relatório fica anexado
 à execução, mostrando em que passo ela parou.

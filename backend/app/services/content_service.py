@@ -266,13 +266,17 @@ class ContentService:
             url_publicacao,
         )
 
-        if all(campo is _UNSET for campo in informados):
-            raise InvalidContentError
-
+        # A posse é conferida antes do corpo, na mesma ordem do serviço de
+        # medição. Invertida, um PATCH de corpo vazio num conteúdo de
+        # outra conta respondia 422, e o critério 3 do RF06 promete 404
+        # para qualquer edição de registro alheio.
         content = self.get(
             content_id=content_id,
             user_id=user_id,
         )
+
+        if all(campo is _UNSET for campo in informados):
+            raise InvalidContentError
 
         alteracoes = self._alteracoes_normalizadas(
             content_id,

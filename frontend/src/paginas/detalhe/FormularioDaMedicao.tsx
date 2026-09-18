@@ -60,6 +60,7 @@ export function FormularioDaMedicao({
 
       <div className={estilos.linhaDeCampos}>
         <Campo
+          disabled={enviando}
           rotulo="Data de referência"
           type="date"
           value={dados.data_referencia}
@@ -71,6 +72,7 @@ export function FormularioDaMedicao({
           max={dataDeHoje()}
         />
         <Campo
+          disabled={enviando}
           rotulo="Visualizações"
           type="number"
           value={dados.visualizacoes}
@@ -83,6 +85,7 @@ export function FormularioDaMedicao({
           dica="Quantas vezes o post foi exibido, contando repetições. É normal ser maior que o alcance."
         />
         <Campo
+          disabled={enviando}
           rotulo="Alcance"
           type="number"
           value={dados.alcance}
@@ -93,6 +96,7 @@ export function FormularioDaMedicao({
           dica="Quantas pessoas diferentes viram o post. No Instagram aparece como “Contas alcançadas”. Deixar em zero deixa o engajamento sem cálculo."
         />
         <Campo
+          disabled={enviando}
           rotulo="Curtidas"
           type="number"
           value={dados.curtidas}
@@ -102,6 +106,7 @@ export function FormularioDaMedicao({
           step={1}
         />
         <Campo
+          disabled={enviando}
           rotulo="Comentários"
           type="number"
           value={dados.comentarios}
@@ -111,6 +116,7 @@ export function FormularioDaMedicao({
           step={1}
         />
         <Campo
+          disabled={enviando}
           rotulo="Compartilhamentos"
           type="number"
           value={dados.compartilhamentos}

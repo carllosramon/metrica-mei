@@ -132,6 +132,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  // Os testes de armazenamento bloqueado espionam o Storage.prototype, que
+  // é compartilhado entre todos os casos do arquivo.
+  vi.restoreAllMocks()
 })
 
 describe('ProvedorAutenticacao', () => {
@@ -315,5 +318,63 @@ describe('ProvedorAutenticacao', () => {
 
     expect(caminhos).toEqual(['/auth/register', '/auth/login', '/auth/me'])
     expect(localStorage.getItem(CHAVE_DO_TOKEN)).toBe('token-da-conta-nova')
+  })
+})
+
+describe('armazenamento bloqueado pelo navegador', () => {
+  // Navegador com dados de site bloqueados levanta no acesso, e não
+  // devolve nulo. O jsdom nunca levanta, então sem estas substituições o
+  // caminho não existe para a suíte.
+  it('sair encerra a sessão mesmo sem conseguir apagar o token', async () => {
+    const usuario = userEvent.setup()
+
+    localStorage.setItem(CHAVE_DO_TOKEN, 'token-guardado')
+
+    servidorCom({ caminho: '/auth/me', corpo: carlos })
+
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new DOMException('acesso negado', 'SecurityError')
+    })
+
+    renderizar()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('usuario')).toHaveTextContent('Carlos')
+    })
+
+    await usuario.click(screen.getByRole('button', { name: 'Sair' }))
+
+    // Antes a exceção subia pelo clique antes de limpar o estado, e a
+    // pessoa continuava logada numa máquina compartilhada achando que
+    // havia saído.
+    expect(screen.getByTestId('token')).toHaveTextContent('nenhum')
+    expect(screen.getByTestId('usuario')).toHaveTextContent('nenhum')
+  })
+
+  it('entrar funciona mesmo sem conseguir guardar o token', async () => {
+    const usuario = userEvent.setup()
+
+    servidorCom(
+      {
+        metodo: 'POST',
+        caminho: '/auth/login',
+        corpo: { access_token: 'token-novo', token_type: 'bearer' },
+      },
+      { caminho: '/auth/me', corpo: carlos },
+    )
+
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('cota esgotada', 'QuotaExceededError')
+    })
+
+    renderizar()
+
+    await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    // O login deu 200 e a credencial estava certa. Antes a tela dizia
+    // "Não foi possível entrar." e a pessoa ia trocar a senha.
+    await waitFor(() => {
+      expect(screen.getByTestId('usuario')).toHaveTextContent('Carlos')
+    })
   })
 })

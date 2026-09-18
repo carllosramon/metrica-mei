@@ -1,9 +1,17 @@
 [run]
 source = app
+# Cobertura de ramo, e não só de linha. Inverter um operador de comparação
+# mantém a linha coberta, e era assim que trocar `posicao == 1` por `>=` no
+# repositório de métricas passava: o painel somaria o histórico inteiro em
+# vez do retrato mais recente, com a suíte verde.
+branch = True
 
 [report]
 # O piso é o valor medido quando a trava entrou, arredondado para baixo.
 # Serve contra queda, e sobe junto quando a cobertura sobe.
-fail_under = 99
+fail_under = 98
 show_missing = True
 skip_covered = True
+# Duas casas porque com zero o coverage arredonda antes de comparar, e um
+# piso de 99 passava com 98,79% medido.
+precision = 2
